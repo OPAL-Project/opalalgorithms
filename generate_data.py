@@ -1,12 +1,14 @@
 """Generate data points.
 
-python generate_data.py <number_of_users_to_create> 
+python generate_data.py -c config
 """
 import random
-import sys
 import time
 import string
 import multiprocessing as mp
+import configargparse
+import os
+
 
 __all__ = []
 __author__ = 'Axel Oehmichen - ao1011@imparial.ac.uk'
@@ -17,6 +19,24 @@ __version__ = "1.0"
 __maintainer__ = "Axel Oehmichen"
 __email__ = "ao1011@imperial.ac.uk"
 __status__ = "Dev"
+
+
+parser = configargparse.ArgumentParser(
+    description='Generate data for testing.')
+parser.add_argument('-c', '--config', required=True, is_config_file=True,
+                    help='Path to config file.')
+parser.add_argument('--num_users', type=int, required=True,
+                    help='Number of users to be created.')
+parser.add_argument('--offset', type=int, required=True,
+                    help='Offset to be used when creating users.')
+parser.add_argument('--num_records_per_user', type=int, required=True,
+                    help='Number of records to be created per user.')
+parser.add_argument('--num_threads', type=int, required=True,
+                    help='Number of threads to be used to create data.')
+parser.add_argument('--data_path', required=True,
+                    help='Data path where generated csv have to be saved.')
+args = parser.parse_args()
+
 
 interactions = {
     0: "call",
@@ -31,15 +51,16 @@ direction = {
 }
 
 
-def strTimeProp(start, end, format, prop):
+def str_time_prop(start, end, format, prop):
+    """Generate time as proportion between start time and end time."""
     stime = time.mktime(time.strptime(start, format))
     etime = time.mktime(time.strptime(end, format))
     ptime = stime + prop * (etime - stime)
     return time.strftime(format, time.localtime(ptime))
 
 
-def randomDate(start, end, prop):
-    return strTimeProp(start, end, '%Y-%m-%d %H:%M:%S', prop)
+def random_date(start, end, prop):
+    return str_time_prop(start, end, '%Y-%m-%d %H:%M:%S', prop)
 
 
 def users_generator(writing_queue, threadID, number_of_users_to_create,
@@ -74,8 +95,8 @@ def generate_random_lines(number_of_records_per_user, number_of_antennas):
         interaction = interactions[random.randint(0, 3)]
         line = interaction + ',' + direction[random.randint(0, 1)] + ',' + \
             users[random.randint(0, 19)] + ',' \
-            + randomDate("2016-01-01 00:00:01", "2016-12-31 23:59:59",
-                         date[k]) + ','
+            + random_date("2016-01-01 00:00:01", "2016-12-31 23:59:59",
+                          date[k]) + ','
         if interaction == "call":
             line += str(random.randint(0, 1000)) + ',' + antennas[
                 random.randint(0, number_of_antennas - 1)]
@@ -94,7 +115,8 @@ def users_writer(writing_queue):
         if user == 'kill':
             break
         if(user is not None):
-            with open(user[0] + '.csv', 'a') as csv:
+            csv_path = os.path.join(args.data_path, user[0] + '.csv')
+            with open(csv_path, 'a') as csv:
                 csv.write(user[1])
                 csv.close()
 
@@ -109,12 +131,12 @@ def chunks(l, n):
 #####################################
 
 def main():
-    number_of_users_to_create = int(sys.argv[1])
-    offset = int(sys.argv[2])
+    number_of_users_to_create = args.num_users
+    offset = args.offset
     # Number of records per day * one year
-    number_of_records_per_user = int(sys.argv[3]) * 365
-    number_of_threads = int(sys.argv[4])
-    step = round(number_of_users_to_create / number_of_threads)
+    number_of_records_per_user = args.num_records_per_user * 365
+    number_of_threads = args.num_threads
+    step = int(round(number_of_users_to_create / number_of_threads))
     c = chunks(number_of_users_to_create, step)
     chunks_list = list(c)
     number_of_antennas = 10

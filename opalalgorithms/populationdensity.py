@@ -6,7 +6,6 @@ Author: Shubham Jain
 """
 from .core.base import OPALAlgorithm
 import csv
-import os
 import operator
 
 
@@ -28,14 +27,13 @@ class PopulationDensity(OPALAlgorithm):
                     antennas[a] += 1
                 else:
                     antennas[a] = 1
-        username = os.path.splitext(os.path.basename(user_csv_file))[0]
         antenna = max(antennas.items(), key=operator.itemgetter(1))[0]
-        return (username, antenna)
+        return antenna
 
     def reduce(self, results_csv_file):
         """Convert results to count of population per antenna."""
         density = dict()
-        with open('density.csv', 'r') as csv_file:
+        with open(results_csv_file, 'r') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=' ')
             for row in csv_reader:
                 a = str(row[1])

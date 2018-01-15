@@ -10,17 +10,6 @@ import configargparse
 import os
 
 
-__all__ = []
-__author__ = 'Axel Oehmichen - ao1011@imparial.ac.uk'
-__copyright__ = "Copyright 2017, Axel Oehmichen"
-__credits__ = []
-__license__ = "MIT"
-__version__ = "1.0"
-__maintainer__ = "Axel Oehmichen"
-__email__ = "ao1011@imperial.ac.uk"
-__status__ = "Dev"
-
-
 parser = configargparse.ArgumentParser(
     description='Generate data for testing.')
 parser.add_argument('-c', '--config', required=True, is_config_file=True,
@@ -65,7 +54,7 @@ def random_date(start, end, prop):
 
 def users_generator(writing_queue, threadID, number_of_users_to_create,
                     number_of_records_per_user, id_number_start, offset,
-                    number_of_antennas):
+                    total_antennas, number_of_antennas_per_user):
     print("Starting " + str(threadID))
     start_time = time.time()
     print(number_of_users_to_create, number_of_records_per_user,
@@ -74,7 +63,8 @@ def users_generator(writing_queue, threadID, number_of_users_to_create,
     for i in range(number_of_users_to_create):
         user = (
             str(id_number_start + i + offset), generate_random_lines(
-                number_of_records_per_user, number_of_antennas))
+                number_of_records_per_user, total_antennas,
+                number_of_antennas_per_user))
         # users.add(user)
         writing_queue.put(user)
     elapsed_time = time.time() - start_time
@@ -83,9 +73,11 @@ def users_generator(writing_queue, threadID, number_of_users_to_create,
     return "OK"
 
 
-def generate_random_lines(number_of_records_per_user, number_of_antennas):
-    antennas = [str(random.randint(0, 1000)) for i in range(
-        number_of_antennas)]
+def generate_random_lines(
+        number_of_records_per_user, total_antennas,
+        number_of_antennas_per_user):
+    antennas = [str(random.randint(0, total_antennas)) for i in range(
+        number_of_antennas_per_user)]
     users = [random.choice(string.ascii_letters) + random.choice(
         string.ascii_letters) for j in range(20)]
     lines = ''
@@ -97,11 +89,11 @@ def generate_random_lines(number_of_records_per_user, number_of_antennas):
             users[random.randint(0, 19)] + ',' \
             + random_date("2016-01-01 00:00:01", "2016-12-31 23:59:59",
                           date[k]) + ','
+        receiver_antenna = ''
         if interaction == "call":
-            line += str(random.randint(0, 1000)) + ',' + antennas[
-                random.randint(0, number_of_antennas - 1)]
-        else:
-            line += ',' + antennas[random.randint(0, number_of_antennas - 1)]
+            receiver_antenna = str(random.randint(0, total_antennas))
+        line += receiver_antenna + ',' + antennas[
+                random.randint(0, number_of_antennas_per_user - 1)]
         lines += line + '\n'
     return lines
 
@@ -139,7 +131,8 @@ def main():
     step = int(round(number_of_users_to_create / number_of_threads))
     c = chunks(number_of_users_to_create, step)
     chunks_list = list(c)
-    number_of_antennas = 10
+    total_antennas = 100
+    number_of_antennas_per_user = 10
 
     # set up parallel processing
     manager = mp.Manager()
@@ -153,18 +146,12 @@ def main():
     # create the users
     i = 0
     for thread_id in range(number_of_threads):
-        tot = step + chunks_list[i]
-        if tot < number_of_users_to_create:
-            jobs.append(pool.apply_async(
-                users_generator, (writing_queue, thread_id, step,
-                                  number_of_records_per_user, chunks_list[i],
-                                  offset, number_of_antennas)))
-        else:
-            last_step = number_of_users_to_create - chunks_list[i]
-            jobs.append(pool.apply_async(
-                users_generator, (writing_queue, thread_id, last_step,
-                                  number_of_records_per_user, chunks_list[i],
-                                  offset, number_of_antennas)))
+        step_size = min(number_of_users_to_create - chunks_list[i], step)
+        jobs.append(pool.apply_async(
+            users_generator, (writing_queue, thread_id, step_size,
+                              number_of_records_per_user, chunks_list[i],
+                              offset, total_antennas,
+                              number_of_antennas_per_user)))
         i += 1
 
     # clean up parallel processing (close pool, wait for processes to finish,

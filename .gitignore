@@ -9,7 +9,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-data/
 results/
 build/
 develop-eggs/
@@ -101,3 +100,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# random data
+data/

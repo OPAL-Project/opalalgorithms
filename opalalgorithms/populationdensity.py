@@ -4,7 +4,7 @@
 Author: Shubham Jain
 
 """
-from .core.base import OPALAlgorithm
+from opalalgorithms.core.base import OPALAlgorithm
 import csv
 import operator
 

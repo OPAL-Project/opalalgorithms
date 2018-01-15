@@ -50,7 +50,8 @@ def main():
     data_dir = str(sys.argv[1])
     number_of_threads = int(sys.argv[2])
     csvfiles = [os.path.join(
-        os.path.abspath(data_dir), f) for f in os.listdir(data_dir)]
+        os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
+        if f.endswith('.csv')]
     step = int(round(len(csvfiles) / number_of_threads))
     c = chunks(csvfiles, step)
 
@@ -67,16 +68,14 @@ def main():
     i = 0
     chunks_list = list(c)
     for thread_id in range(number_of_threads):
-        mapper(writing_queue, chunks_list[i], algorithmobj)
-        # jobs.append(pool.apply_async(mapper, (
-        #     writing_queue, chunks_list[i], algorithmobj)))
+        jobs.append(pool.apply_async(mapper, (
+            writing_queue, chunks_list[i], algorithmobj)))
         i += 1
 
     # Clean up parallel processing (close pool, wait for processes to finish,
     # kill writing_queue, wait for queue to be killed)
     pool.close()
     for job in jobs:
-        print(job)
         job.get()
     writing_queue.put('kill')
     pool.join()

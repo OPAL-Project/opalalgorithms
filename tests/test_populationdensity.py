@@ -37,7 +37,7 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
-def main():
+def test_populationdensity():
     """Main function."""
     # load the algorithm
     mod = __import__('opalalgorithms', fromlist=['PopulationDensity'])
@@ -86,4 +86,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    test_populationdensity()

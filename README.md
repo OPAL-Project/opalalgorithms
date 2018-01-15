@@ -9,6 +9,11 @@ and `reduce` functions.
 
 ## TODO
 
+- Docs
+- PyPy hosting
+- Proper tests for travis
+- Flake8 and coding standard checks
+
 ## Notes
 
 ## Contributing

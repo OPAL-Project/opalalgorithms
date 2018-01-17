@@ -15,7 +15,8 @@ setup(
     license='MIT',
     packages=[
         'opalalgorithms',
-        'opalalgorithms.core'
+        'opalalgorithms.core',
+        'opalalgorithms.utils'
     ],
     include_package_data=True,
     install_requires=['setuptools'],

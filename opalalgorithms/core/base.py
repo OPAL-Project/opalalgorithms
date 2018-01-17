@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Base class for implementing any algorithms for OPAL computation.
-
-Author: Shubham Jain
-
-"""
+"""Base class for implementing any algorithms for OPAL computation."""
 
 
 class OPALAlgorithm(object):

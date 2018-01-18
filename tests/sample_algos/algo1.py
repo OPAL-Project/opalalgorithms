@@ -7,6 +7,11 @@ import operator
 
 def helper(x):
     """Just a helper function."""
+    return __helper(x)
+
+
+def __helper(x):
+    """Private function."""
     return x
 
 

@@ -37,10 +37,11 @@ args = parser.parse_args()
 #####################################
 
 
-def generate(num_users, num_threads, offset=0):
+def generate(OPALDataGenerator, num_users, num_threads, offset=0):
     """Generate data for num_users mentioned.
 
     Args:
+        OPALDataGenerator: Class Helper to generate the records
         num_users (int): Number of users to be created.
         offset (int): Offset for ID of users, by default ID starts from 1,
             if any offset is needed it can be set via this parameter.
@@ -64,7 +65,7 @@ def generate(num_users, num_threads, offset=0):
             num_users + offset - start_id_list[thread_id], step_size)
         jobs.append(pool.apply_async(
             generate_data, (
-                writing_queue, thread_id, num_users_for_thread,
+                writing_queue, thread_id, OPALDataGenerator, num_users_for_thread,
                 start_id_list[thread_id])))
 
     # clean up parallel processing (close pool, wait for processes to
@@ -91,14 +92,14 @@ def write_user_to_csv(writing_queue, save_path):
                 csv.close()
 
 
-def generate_data(writing_queue, threadID, num_users, start_id):
+def generate_data(writing_queue, threadID, OPALDataGenerator, num_users, start_id):
     """Generate data of the size required."""
     print("Starting " + str(threadID))
     start_time = time.time()
     print("Creating {} users, starting from id "
           "{}".format(num_users, start_id))
     for i in range(num_users):
-        user = (str(start_id + i), odg.generate_data())
+        user = (str(start_id + i), OPALDataGenerator.generate_data())
         writing_queue.put(user)
     elapsed_time = time.time() - start_time
     print("The thread {} is done and it took: {}".format(
@@ -106,6 +107,10 @@ def generate_data(writing_queue, threadID, num_users, start_id):
     return "OK"
 
 
-odg = OPALDataGenerator(
-    args.num_antennas, args.num_antennas_per_user, args.num_records_per_user)
-generate(args.num_users, args.num_threads, args.offset)
+if __name__ == "__main__":
+    # Prevent attempt to start a new process before the current process has finished its bootstrapping phase in Windows.
+    if os.name == 'nt':
+        mp.freeze_support()
+
+    odg = OPALDataGenerator(args.num_antennas, args.num_antennas_per_user, args.num_records_per_user)
+    generate(odg, args.num_users, args.num_threads, args.offset)

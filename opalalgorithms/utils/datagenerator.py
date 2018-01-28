@@ -24,6 +24,11 @@ class OPALDataGenerator(object):
         self.num_records_per_user = num_records_per_user
         self.__interactions = ["call", "text", "text", "text"]
         self.__directions = ["in", "out"]
+        self.__country_codes = ["44", "33", "212", "19"]
+        self.__levels = ["Diourbel,Dinguiraye", "Ziguinchor,Bignona", "Dakar,Dakar", "Ile-de-france,Paris",
+                         "Midi-pyrenee,Toulouse", "Aquitaine,Bordeaux", "Alsace,Strasbourg", "Oxfordshire,Oxford",
+                         "London,London", "Wales,Cardiff", "Scotland,Edinburg", "Lazzio,Roma", "Veneto,Venice",
+                         "Bruxelles,Bruxelles", "Flandesr,Brugges", "Maharashtra,Mumbai"]
 
     def generate_data(self):
         """Generate data for a single user."""
@@ -47,15 +52,16 @@ class OPALDataGenerator(object):
         user = users[random.randint(0, 19)]
         date = self.__random_date(
             "2016-01-01 00:00:01", "2016-12-31 23:59:59", date_prop)
-        receiver_antenna = ''
+        call_length = ''
         if interaction == "call":
-            receiver_antenna = str(
+            call_length = str(
                 random.randint(0, self.num_antennas - 1))
-        caller_antenna = antennas[
+        antenna_id = antennas[
             random.randint(0, self.num_antennas_per_user - 1)]
         line = ','.join([
-            interaction, direction, user, date, receiver_antenna,
-            caller_antenna])
+            interaction, direction, user, date, call_length,
+            antenna_id, str(round(random.random()*90, 6)), str(round(random.random()*180, 6)),
+            self.__levels[random.randint(0, 15)]])
         return line
 
     def __str_time_prop(self, start, end, format, prop):

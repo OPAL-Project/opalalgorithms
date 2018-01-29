@@ -8,17 +8,18 @@ import math
 __all__ = ["AlgorithmRunner"]
 
 
-def mapper(writing_queue, users_csv_files, algorithmobj):
+def mapper(writing_queue, params, users_csv_files, algorithmobj):
     """Map user_data to result.
 
     Args:
         writing_queue (mp.manager.Queue): Queue for inserting results.
+        params (dict): Parameters to be used by each map of the algorithm.
         users_csv_files (list): List of paths of csv files of users.
         algorithmobj (opalalgorithm.core.OPALAlgorithm): OPALAlgorithm object.
     """
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
-        result = algorithmobj.map(user_csv_file)
+        result = algorithmobj.map(params, user_csv_file)
         writing_queue.put((username, result))
 
 
@@ -40,14 +41,15 @@ def collector(writing_queue, results_csv_path):
                 csvfile.write(user[0] + ' ' + user[1] + '\n')
 
 
-def reducer(algorithmobj, results_csv_path):
+def reducer(params, algorithmobj, results_csv_path):
     """Reduce the results from a csv to a single number.
 
     Args:
+        params (dict): Parameters to be used by the reduce of the algorithm.
         algorithmobj (opalalgorithm.core.OPALAlgorithm): OPALAlgorithm object.
         results_csv_path (str): CSV Path where results are saved.
     """
-    return algorithmobj.reduce(results_csv_path)
+    return algorithmobj.reduce(params, results_csv_path)
 
 
 class AlgorithmRunner(object):
@@ -62,10 +64,11 @@ class AlgorithmRunner(object):
         """Initialize class."""
         self.algorithmobj = algorithmobj
 
-    def __call__(self, data_dir, num_threads, results_csv_path):
+    def __call__(self, params, data_dir, num_threads, results_csv_path):
         """Run algorithm.
 
         Args:
+            params (dict): Dictionary containing all the parameters for the algorithm
             data_dir (str): Data directory.
             num_threads (int): Number of threads
             results_csv_path (str): Path where to save results in csv.
@@ -91,7 +94,7 @@ class AlgorithmRunner(object):
         i = 0
         for thread_id in range(num_threads):
             jobs.append(pool.apply_async(mapper, (
-                writing_queue, chunks_list[i], self.algorithmobj)))
+                writing_queue, params, chunks_list[i], self.algorithmobj)))
             i += 1
 
         # Clean up parallel processing (close pool, wait for processes to
@@ -101,7 +104,7 @@ class AlgorithmRunner(object):
             job.get()
         writing_queue.put('kill')  # stop collection
         pool.join()
-        result = reducer(self.algorithmobj, results_csv_path)
+        result = reducer(params, self.algorithmobj, results_csv_path)
         elapsed_time = time.time() - start_time
         print("The algorithm computation is done and it took: {}".format(
             elapsed_time))

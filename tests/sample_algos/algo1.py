@@ -22,10 +22,11 @@ class SampleAlgo1(OPALAlgorithm):
         """Initialize population density."""
         super(SampleAlgo1, self).__init__()
 
-    def map(self, user_csv_file):
+    def map(self, params, user_csv_file):
         """Map user_csv_file to user and most used antenna.
 
         Args:
+            params(dict): Parameters to be used by each map of the algorithm.
             user_csv_file (str): Path to user_csv_file.
         """
         antennas = dict()
@@ -40,10 +41,11 @@ class SampleAlgo1(OPALAlgorithm):
         antenna = max(antennas.items(), key=operator.itemgetter(1))[0]
         return self.__helper(antenna)
 
-    def reduce(self, results_csv_file):
+    def reduce(self, params, results_csv_file):
         """Convert results to count of population per antenna.
 
         Args:
+            params(dict): Parameters to be used by the reduce of the algorithm.
             results_csv_file (int): Read results file and reduce to a result.
         """
         density = dict()

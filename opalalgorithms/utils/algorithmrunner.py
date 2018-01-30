@@ -33,12 +33,12 @@ def collector(writing_queue, results_csv_path):
     with open(results_csv_path, 'a') as csvfile:
         while True:
             # wait for result to appear in the queue
-            user = writing_queue.get()
+            map = writing_queue.get()
             # if got signal 'kill' exit the loop
-            if user == 'kill':
+            if map == 'kill':
                 break
-            if user is not None:
-                csvfile.write(user[0] + ' ' + user[1] + '\n')
+            if map is not None:
+                csvfile.write(map, delimiter=' ', lineterminator='\n')
 
 
 def reducer(params, algorithmobj, results_csv_path):

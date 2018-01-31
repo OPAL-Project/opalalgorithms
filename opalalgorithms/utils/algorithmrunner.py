@@ -27,7 +27,7 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj):
         writing_queue.put(result)
 
 
-def collector(writing_queue, results_csv_path):
+def collector(writing_queue, params):
     """Collect the results in writing queue in a single csv.
 
     Args:
@@ -35,7 +35,7 @@ def collector(writing_queue, results_csv_path):
         results_csv_path (str): CSV where we have to save results.
     """
     #TODO rewrite to send the collected result to the aggregation+privacy service
-    with open(results_csv_path, 'a') as csvfile:
+    # with open(results_csv_path, 'a') as csvfile:
         while True:
             # wait for result to appear in the queue
             map = writing_queue.get()
@@ -43,7 +43,9 @@ def collector(writing_queue, results_csv_path):
             if map == 'kill':
                 break
             if map is not None:
-                csvfile.write(map, delimiter=' ', lineterminator='\n')
+                params["aggregation_url"]
+                POST to http://aggregatin/aggregate/:job_
+                # csvfile.write(map, delimiter=' ', lineterminator='\n')
 
 
 #  Useless change in design with reduce being done at the aggregation service

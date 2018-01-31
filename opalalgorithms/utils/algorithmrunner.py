@@ -1,9 +1,12 @@
 """Given an algorithm object, run the algorithm."""
 from __future__ import division, print_function
 import multiprocessing as mp
+import random
 import time
 import os
 import math
+import bandicoot
+import csv
 
 __all__ = ["AlgorithmRunner"]
 
@@ -19,8 +22,9 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj):
     """
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
-        result = algorithmobj.map(params, user_csv_file)
-        writing_queue.put((username, result))
+        bandicoot_user = bandicoot.read_csv(username, os.path.dirname(user_csv_file))
+        result = algorithmobj.map(params, bandicoot_user)
+        writing_queue.put(result)
 
 
 def collector(writing_queue, results_csv_path):
@@ -30,6 +34,7 @@ def collector(writing_queue, results_csv_path):
         writing_queue (mp.manager.Queue): Queue from which collect results.
         results_csv_path (str): CSV where we have to save results.
     """
+    #TODO rewrite to send the collected result to the aggregation+privacy service
     with open(results_csv_path, 'a') as csvfile:
         while True:
             # wait for result to appear in the queue
@@ -41,15 +46,25 @@ def collector(writing_queue, results_csv_path):
                 csvfile.write(map, delimiter=' ', lineterminator='\n')
 
 
-def reducer(params, algorithmobj, results_csv_path):
-    """Reduce the results from a csv to a single number.
-
-    Args:
-        params (dict): Parameters to be used by the reduce of the algorithm.
-        algorithmobj (opalalgorithm.core.OPALAlgorithm): OPALAlgorithm object.
-        results_csv_path (str): CSV Path where results are saved.
-    """
-    return algorithmobj.reduce(params, results_csv_path)
+#  Useless change in design with reduce being done at the aggregation service
+# def reducer(params, results_csv_file):
+#     """Reduce the results from a csv to a single number.
+#
+#     Args:
+#         params (dict): Parameters to be used by the reduce of the algorithm.
+#         results_csv_file (str): CSV Path where results are saved.
+#     """
+#     params["aggregation"]
+#     aggregation = dict()
+#     with open(results_csv_file, 'r') as csv_file:
+#         csv_reader = csv.reader(csv_file, delimiter=' ')
+#         for row in csv_reader:
+#             a = str(row[1])
+#             if a in aggregation:
+#                 aggregation[a] += 1
+#             else:
+#                 aggregation[a] = 1
+#     return aggregation
 
 
 class AlgorithmRunner(object):
@@ -74,12 +89,14 @@ class AlgorithmRunner(object):
             results_csv_path (str): Path where to save results in csv.
         """
         start_time = time.time()
-        csvfiles = [os.path.join(
+        csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
             if f.endswith('.csv')]
-        step_size = int(math.ceil(len(csvfiles) / num_threads))
-        chunks_list = [csvfiles[j:min(j+step_size, len(csvfiles))]
-                       for j in range(0, len(csvfiles), step_size)]
+        sampling = round(params["sampling"] * len(csv_files))
+        sampled_csv_files = random.sample(csv_files, sampling)
+        step_size = int(math.ceil(len(sampled_csv_files) / num_threads))
+        chunks_list = [sampled_csv_files[j:min(j + step_size, len(sampled_csv_files))]
+                       for j in range(0, len(sampled_csv_files), step_size)]
 
         # set up parallel processing
         manager = mp.Manager()
@@ -104,8 +121,6 @@ class AlgorithmRunner(object):
             job.get()
         writing_queue.put('kill')  # stop collection
         pool.join()
-        result = reducer(params, self.algorithmobj, results_csv_path)
+        # result = reducer(params, results_csv_path)  # Move it to the aggregation/privacy module
         elapsed_time = time.time() - start_time
-        print("The algorithm computation is done and it took: {}".format(
-            elapsed_time))
-        return result
+        return elapsed_time

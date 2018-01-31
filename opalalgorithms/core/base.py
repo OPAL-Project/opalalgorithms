@@ -21,16 +21,3 @@ class OPALAlgorithm(object):
 
         """
         raise NotImplementedError
-
-    def reduce(self, params, results_csv_file):
-        """Reduce all user results to a single result object.
-
-        Args:
-            params(dict): Parameters to be used by each map of the algorithm.
-            results_csv_file(string): csv file containing results received from map.
-
-        Returns:
-            obj: single object obtained as part of reduction of results.
-
-        """
-        raise NotImplementedError

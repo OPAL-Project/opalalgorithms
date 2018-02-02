@@ -6,7 +6,7 @@ import time
 import os
 import math
 import bandicoot
-import csv
+import six
 
 __all__ = ["AlgorithmRunner"]
 
@@ -22,51 +22,77 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj):
     """
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
-        bandicoot_user = bandicoot.read_csv(username, os.path.dirname(user_csv_file))
+        bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
+            user_csv_file))
         result = algorithmobj.map(params, bandicoot_user)
         writing_queue.put(result)
 
 
-def collector(writing_queue, params):
+def collector(writing_queue, params, dev_mode=True):
     """Collect the results in writing queue in a single csv.
 
     Args:
         writing_queue (mp.manager.Queue): Queue from which collect results.
         results_csv_path (str): CSV where we have to save results.
     """
-    #TODO rewrite to send the collected result to the aggregation+privacy service
-    # with open(results_csv_path, 'a') as csvfile:
-        while True:
-            # wait for result to appear in the queue
-            map = writing_queue.get()
-            # if got signal 'kill' exit the loop
-            if map == 'kill':
-                break
-            if map is not None:
-                params["aggregation_url"]
-                POST to http://aggregatin/aggregate/:job_
-                # csvfile.write(map, delimiter=' ', lineterminator='\n')
+    while True:
+        # wait for result to appear in the queue
+        result = writing_queue.get()
+        # if got signal 'kill' exit the loop
+        if result == 'kill':
+            break
+        if result is not None:
+            if is_valid_result(result):
+                if not dev_mode:
+                    # params["aggregation_url"]
+                    # POST to http://aggregatin/aggregate/:job_id
+                    print("posting to aggregation id")
+            else:
+                if dev_mode:
+                    print("Error in result {}".format(result))
 
 
-#  Useless change in design with reduce being done at the aggregation service
-# def reducer(params, results_csv_file):
-#     """Reduce the results from a csv to a single number.
-#
-#     Args:
-#         params (dict): Parameters to be used by the reduce of the algorithm.
-#         results_csv_file (str): CSV Path where results are saved.
-#     """
-#     params["aggregation"]
-#     aggregation = dict()
-#     with open(results_csv_file, 'r') as csv_file:
-#         csv_reader = csv.reader(csv_file, delimiter=' ')
-#         for row in csv_reader:
-#             a = str(row[1])
-#             if a in aggregation:
-#                 aggregation[a] += 1
-#             else:
-#                 aggregation[a] = 1
-#     return aggregation
+def is_valid_result(result):
+    """Check if result is valid.
+
+    Args:
+        result: Output of the algorithm.
+
+    Notes:
+        Result is valid if it is a dict. All keys of the dict must be
+        be a points or string. All points must be 1d or 2d. All values
+        must be numbers. These results are sent to reducer which will sum,
+        mean, median, mode of the values belonging to same key.
+
+        Example:
+            - {"1": 1, "199": 1, ..}
+            - {(231, 283): 1, (154, 87): 0.5, ..}
+            - {(1): 7, (356): 6, ..}
+
+        TODO: string as key has privacy concerns, might need to change later.
+
+    Returns:
+        bool: Specifying if the result is valid or not.
+
+    """
+    # check result must be a dict
+    if not isinstance(result, dict):
+        return False
+    # check each value must be an integer or float
+    if not (all([isinstance(x, six.integer_types) or isinstance(x, float)
+                 for x in six.itervalues(result)])):
+        return False
+    # check each key must either be a string or tuple, a dict cannot have some
+    # keys as string and some as tuple. If it is tuple then all keys must
+    # either be of length 1 or length 2.
+    if not ((all([isinstance(x, tuple) and len(x) == 2
+                  for x in six.iterkeys(result)]) or
+             all([isinstance(x, tuple) and len(x) == 1
+                  for x in six.iterkeys(result)])) or
+            all([isinstance(x, six.string_types)
+                 for x in six.iterkeys(result)])):
+        return False
+    return True
 
 
 class AlgorithmRunner(object):
@@ -85,7 +111,8 @@ class AlgorithmRunner(object):
         """Run algorithm.
 
         Args:
-            params (dict): Dictionary containing all the parameters for the algorithm
+            params (dict): Dictionary containing all the parameters for the
+                algorithm
             data_dir (str): Data directory.
             num_threads (int): Number of threads
             results_csv_path (str): Path where to save results in csv.
@@ -97,8 +124,9 @@ class AlgorithmRunner(object):
         sampling = round(params["sampling"] * len(csv_files))
         sampled_csv_files = random.sample(csv_files, sampling)
         step_size = int(math.ceil(len(sampled_csv_files) / num_threads))
-        chunks_list = [sampled_csv_files[j:min(j + step_size, len(sampled_csv_files))]
-                       for j in range(0, len(sampled_csv_files), step_size)]
+        chunks_list = [sampled_csv_files[j:min(j + step_size, len(
+                       sampled_csv_files))] for j in range(
+                        0, len(sampled_csv_files), step_size)]
 
         # set up parallel processing
         manager = mp.Manager()
@@ -123,6 +151,5 @@ class AlgorithmRunner(object):
             job.get()
         writing_queue.put('kill')  # stop collection
         pool.join()
-        # result = reducer(params, results_csv_path)  # Move it to the aggregation/privacy module
         elapsed_time = time.time() - start_time
         return elapsed_time

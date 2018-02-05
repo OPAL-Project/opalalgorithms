@@ -11,7 +11,8 @@ import six
 __all__ = ["AlgorithmRunner"]
 
 
-def mapper(writing_queue, params, users_csv_files, algorithmobj):
+def mapper(writing_queue, params, users_csv_files, algorithmobj,
+           dev_mode=False):
     """Map user_data to result.
 
     Args:
@@ -19,13 +20,17 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj):
         params (dict): Parameters to be used by each map of the algorithm.
         users_csv_files (list): List of paths of csv files of users.
         algorithmobj (opalalgorithm.core.OPALAlgorithm): OPALAlgorithm object.
+        dev_mode (bool): Development mode.
     """
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
         bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
             user_csv_file))
         result = algorithmobj.map(params, bandicoot_user)
-        writing_queue.put(result)
+        if is_valid_result(result):
+            writing_queue.put(result)
+        elif dev_mode:
+            print("Error in result {}".format(result))
 
 
 def collector(writing_queue, params, dev_mode=True):
@@ -42,14 +47,7 @@ def collector(writing_queue, params, dev_mode=True):
         if result == 'kill':
             break
         if result is not None:
-            if is_valid_result(result):
-                if not dev_mode:
-                    # params["aggregation_url"]
-                    # POST to http://aggregatin/aggregate/:job_id
-                    print("posting to aggregation id")
-            else:
-                if dev_mode:
-                    print("Error in result {}".format(result))
+            print("posting result {}".format(result))
 
 
 def is_valid_result(result):
@@ -100,12 +98,13 @@ class AlgorithmRunner(object):
 
     Args:
         algorithmobj (OPALAlgorithm): Instance of an opal algorithm.
-
+        dev_mode (bool): Development mode switch
     """
 
-    def __init__(self, algorithmobj):
+    def __init__(self, algorithmobj, dev_mode=False):
         """Initialize class."""
         self.algorithmobj = algorithmobj
+        self.dev_mode = dev_mode
 
     def __call__(self, params, data_dir, num_threads, results_csv_path):
         """Run algorithm.
@@ -121,7 +120,7 @@ class AlgorithmRunner(object):
         csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
             if f.endswith('.csv')]
-        sampling = round(params["sampling"] * len(csv_files))
+        sampling = int(math.ceil(params["sampling"] * len(csv_files)))
         sampled_csv_files = random.sample(csv_files, sampling)
         step_size = int(math.ceil(len(sampled_csv_files) / num_threads))
         chunks_list = [sampled_csv_files[j:min(j + step_size, len(
@@ -141,7 +140,8 @@ class AlgorithmRunner(object):
         i = 0
         for thread_id in range(num_threads):
             jobs.append(pool.apply_async(mapper, (
-                writing_queue, params, chunks_list[i], self.algorithmobj)))
+                writing_queue, params, chunks_list[i], self.algorithmobj,
+                self.dev_mode)))
             i += 1
 
         # Clean up parallel processing (close pool, wait for processes to

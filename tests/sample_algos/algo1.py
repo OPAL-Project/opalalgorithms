@@ -39,7 +39,7 @@ class SampleAlgo1(OPALAlgorithm):
                 else:
                     antennas[a] = 1
         antenna = max(antennas.items(), key=operator.itemgetter(1))[0]
-        return self.__helper(antenna)
+        return self.__helper({antenna: 1})
 
     def reduce(self, params, results_csv_file):
         """Convert results to count of population per antenna.

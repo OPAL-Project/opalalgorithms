@@ -17,18 +17,22 @@ class OPALDataGenerator(object):
 
     """
 
-    def __init__(
-            self, num_antennas, num_antennas_per_user, num_records_per_user):
+    def __init__(self, num_antennas, num_antennas_per_user,
+                 num_records_per_user):
+        """Initialize data generator class."""
         self.num_antennas = num_antennas
         self.num_antennas_per_user = num_antennas_per_user
         self.num_records_per_user = num_records_per_user
         self.__interactions = ["call", "text", "text", "text"]
         self.__directions = ["in", "out"]
         self.__country_codes = ["44", "33", "212", "19"]
-        self.__levels = ["Diourbel,Dinguiraye", "Ziguinchor,Bignona", "Dakar,Dakar", "Ile-de-france,Paris",
-                         "Midi-pyrenee,Toulouse", "Aquitaine,Bordeaux", "Alsace,Strasbourg", "Oxfordshire,Oxford",
-                         "London,London", "Wales,Cardiff", "Scotland,Edinburg", "Lazzio,Roma", "Veneto,Venice",
-                         "Bruxelles,Bruxelles", "Flandesr,Brugges", "Maharashtra,Mumbai"]
+        self.__levels = [
+            "Diourbel,Dinguiraye", "Ziguinchor,Bignona", "Dakar,Dakar",
+            "Ile-de-france,Paris", "Midi-pyrenee,Toulouse",
+            "Aquitaine,Bordeaux", "Alsace,Strasbourg", "Oxfordshire,Oxford",
+            "London,London", "Wales,Cardiff", "Scotland,Edinburg",
+            "Lazzio,Roma", "Veneto,Venice", "Bruxelles,Bruxelles",
+            "Flandesr,Brugges", "Maharashtra,Mumbai"]
 
     def generate_data(self):
         """Generate data for a single user."""
@@ -58,10 +62,12 @@ class OPALDataGenerator(object):
                 random.randint(0, self.num_antennas - 1))
         antenna_id = antennas[
             random.randint(0, self.num_antennas_per_user - 1)]
+        latitude = str(round(random.random()*90, 6))
+        longitude = str(round(random.random()*180, 6))
+        location = self.__levels[random.randint(0, 15)]
         line = ','.join([
             interaction, direction, user, date, call_length,
-            antenna_id, str(round(random.random()*90, 6)), str(round(random.random()*180, 6)),
-            self.__levels[random.randint(0, 15)]])
+            antenna_id, latitude, longitude, location])
         return line
 
     def __str_time_prop(self, start, end, format, prop):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Base utils for all Bandicoot related utilities"""
+"""Base utils for all Bandicoot related utilities."""
 
 fields = {
     "interaction": 0,

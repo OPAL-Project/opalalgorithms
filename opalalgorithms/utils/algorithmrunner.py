@@ -26,7 +26,7 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj,
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
         bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
-            user_csv_file), describe=False, warnings=False)
+            user_csv_file), describe=dev_mode, warnings=dev_mode)
         result = algorithmobj.map(params, bandicoot_user)
         if is_valid_result(result):
             writing_queue.put(result)

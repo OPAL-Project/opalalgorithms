@@ -44,6 +44,12 @@ class OPALDataGenerator(object):
         """Generate data for a single user."""
         antennas = [str(random.randint(0, self.num_antennas - 1))
                     for i in range(self.num_antennas_per_user)]
+        latitude = [str(round(random.random()*90, 6))
+                    for i in antennas]
+        longitude = [str(round(random.random()*180, 6))
+                     for i in antennas]
+        location = [self.__levels[random.randint(0, 15)]
+                    for i in antennas]
         users = [random.choice(string.ascii_letters) + random.choice(
             string.ascii_letters) for j in range(20)]
         lines = []
@@ -59,10 +65,12 @@ class OPALDataGenerator(object):
         date_props.sort()
         for k in range(self.num_records_per_user):
             lines.append(self.__generate_single_line(
-                antennas, users, date_props[k]))
+                antennas, users, date_props[k], latitude, longitude, location))
         return '\n'.join(lines) + '\n'
 
-    def __generate_single_line(self, antennas, users, date_prop):
+    def __generate_single_line(
+            self, antennas, users, date_prop,
+            latitude, longitude, location):
         """Generate a single call data record."""
         interaction = random.choice(self.__interactions)
         direction = random.choice(self.__directions)
@@ -73,16 +81,14 @@ class OPALDataGenerator(object):
         if interaction == "call":
             call_length = str(
                 random.randint(0, self.num_antennas - 1))
-        antenna_id = antennas[
-            random.randint(0, self.num_antennas_per_user - 1)]
-        latitude = str(round(random.random()*90, 6))
-        longitude = str(round(random.random()*180, 6))
-        location = self.__levels[random.randint(0, 15)]
+        antenna_index = random.randint(0, self.num_antennas_per_user - 1)
+        antenna_id = antennas[antenna_index]
         line = ''
         if self.bandicoot_extended:
             line = ','.join([
                 interaction, direction, user, date, call_length,
-                antenna_id, latitude, longitude, location])
+                antenna_id, latitude[antenna_index], longitude[antenna_index],
+                location[antenna_index]])
         else:
             line = ','.join([
                 interaction, direction, user, date, call_length,

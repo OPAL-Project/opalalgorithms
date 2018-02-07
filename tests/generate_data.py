@@ -113,6 +113,8 @@ if __name__ == "__main__":
     if os.name == 'nt':
         mp.freeze_support()
 
+    # TODO: Remove bandicoot extended.
     odg = OPALDataGenerator(args.num_antennas, args.num_antennas_per_user,
-                            args.num_records_per_user)
+                            args.num_records_per_user,
+                            bandicoot_extended=False)
     generate(odg, args.num_users, args.num_threads, args.offset)

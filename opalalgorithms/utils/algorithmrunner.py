@@ -26,7 +26,7 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj,
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
         bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
-            user_csv_file))
+            user_csv_file), describe=False, warnings=False)
         result = algorithmobj.map(params, bandicoot_user)
         if is_valid_result(result):
             writing_queue.put(result)
@@ -53,8 +53,12 @@ def collector(writing_queue, params, dev_mode=False):
         # if got signal 'kill' exit the loop
         if result == 'kill':
             break
-        if result is not None and not dev_mode:
-            print("posting result {}".format(result))
+        if result is not None:
+            if dev_mode:
+                print("posting result to aggregator {}".format(result))
+            else:
+                # TODO: Post to aggregator
+                pass
 
 
 def is_valid_result(result):
@@ -115,7 +119,7 @@ class AlgorithmRunner(object):
         self.algorithmobj = algorithmobj
         self.dev_mode = dev_mode
 
-    def __call__(self, params, data_dir, num_threads, results_csv_path):
+    def __call__(self, params, data_dir, num_threads):
         """Run algorithm.
 
         Selects the csv files from the data directory. Samples data from
@@ -130,7 +134,6 @@ class AlgorithmRunner(object):
                 algorithm
             data_dir (str): Data directory with csv files.
             num_threads (int): Number of threads
-            results_csv_path (str): Path where to save results in csv.
 
         Returns:
             int: Amount of time required for computation in microseconds.
@@ -154,7 +157,7 @@ class AlgorithmRunner(object):
 
         # additional 1 process for writer
         pool = mp.Pool(processes=num_threads + 1)
-        pool.apply_async(collector, (writing_queue, results_csv_path,))
+        pool.apply_async(collector, (writing_queue, params, self.dev_mode))
 
         # Compute the density
         i = 0

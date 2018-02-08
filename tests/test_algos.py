@@ -13,7 +13,9 @@ def test_algos():
 
     data_dir = str(sys.argv[1])
     number_of_threads = int(sys.argv[2])
-    params = dict(sampling=0.2)
+    params = dict(
+        sampling=0.2,
+        aggregation_level='location_level_1')
     algorunner = AlgorithmRunner(algorithmobj, dev_mode=True)
     result = algorunner(params, data_dir, number_of_threads)
     print(result)

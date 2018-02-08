@@ -41,7 +41,8 @@ def generate(opal_data_generator, num_users, num_threads, offset=0):
     """Generate data for num_users mentioned.
 
     Args:
-        OPALDataGenerato: Class Helper to generate the records
+        opal_data_generator (OPALDataGenerator): Data generator for generating
+            records.
         num_users (int): Number of users to be created.
         offset (int): Offset for ID of users, by default ID starts from 1,
             if any offset is needed it can be set via this parameter.

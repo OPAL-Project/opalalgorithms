@@ -13,10 +13,9 @@ def test_algos():
 
     data_dir = str(sys.argv[1])
     number_of_threads = int(sys.argv[2])
-    results_csv_path = str(sys.argv[3])
-    params = dict()
-    algorunner = AlgorithmRunner(algorithmobj)
-    result = algorunner(params, data_dir, number_of_threads, results_csv_path)
+    params = dict(sampling=0.2)
+    algorunner = AlgorithmRunner(algorithmobj, dev_mode=True)
+    result = algorunner(params, data_dir, number_of_threads)
     print(result)
 
 

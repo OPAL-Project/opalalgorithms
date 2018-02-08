@@ -1,8 +1,6 @@
 """Sample algorithm 1 to check there is no issue of imports, etc."""
 from __future__ import division, print_function
 from opalalgorithms.core import OPALAlgorithm
-import csv
-import operator
 
 
 def helper(x):
@@ -22,42 +20,20 @@ class SampleAlgo1(OPALAlgorithm):
         """Initialize population density."""
         super(SampleAlgo1, self).__init__()
 
-    def map(self, params, user_csv_file):
-        """Map user_csv_file to user and most used antenna.
+    def map(self, params, bandicoot_user):
+        """Get home of the bandicoot user.
 
         Args:
-            params(dict): Parameters to be used by each map of the algorithm.
-            user_csv_file (str): Path to user_csv_file.
-        """
-        antennas = dict()
-        with open(user_csv_file, 'r') as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=',')
-            for row in csv_reader:
-                a = str(row[5])
-                if a in antennas:
-                    antennas[a] += 1
-                else:
-                    antennas[a] = 1
-        antenna = max(antennas.items(), key=operator.itemgetter(1))[0]
-        return self.__helper(antenna)
+            params (dict): Request parameters.
+            bandicoot_user (bandicoot.core.User): Bandicoot user object.
 
-    def reduce(self, params, results_csv_file):
-        """Convert results to count of population per antenna.
-
-        Args:
-            params(dict): Parameters to be used by the reduce of the algorithm.
-            results_csv_file (int): Read results file and reduce to a result.
         """
-        density = dict()
-        with open(results_csv_file, 'r') as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=' ')
-            for row in csv_reader:
-                a = str(row[1])
-                if a in density:
-                    density[a] += 1
-                else:
-                    density[a] = 1
-        return density
+        # TODO: Use aggregation level setting from
+        # antenna_id, location_level_1 or location_level_2
+        home = bandicoot_user.recompute_home()
+        if not home:
+            return None
+        return {home.antenna: 1}
 
     def __helper(self, x):
         """Private helper function."""

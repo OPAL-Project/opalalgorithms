@@ -37,11 +37,12 @@ args = parser.parse_args()
 #####################################
 
 
-def generate(OPALDataGenerator, num_users, num_threads, offset=0):
+def generate(opal_data_generator, num_users, num_threads, offset=0):
     """Generate data for num_users mentioned.
 
     Args:
-        OPALDataGenerator: Class Helper to generate the records
+        opal_data_generator (OPALDataGenerator): Data generator for generating
+            records.
         num_users (int): Number of users to be created.
         offset (int): Offset for ID of users, by default ID starts from 1,
             if any offset is needed it can be set via this parameter.
@@ -65,8 +66,8 @@ def generate(OPALDataGenerator, num_users, num_threads, offset=0):
             num_users + offset - start_id_list[thread_id], step_size)
         jobs.append(pool.apply_async(
             generate_data, (
-                writing_queue, thread_id, OPALDataGenerator, num_users_for_thread,
-                start_id_list[thread_id])))
+                writing_queue, thread_id, opal_data_generator,
+                num_users_for_thread, start_id_list[thread_id])))
 
     # clean up parallel processing (close pool, wait for processes to
     # finish, kill writing_queue, wait for queue to be killed)
@@ -87,19 +88,19 @@ def write_user_to_csv(writing_queue, save_path):
             break
         if(user is not None):
             csv_path = os.path.join(save_path, user[0] + '.csv')
-            with open(csv_path, 'a') as csv:
+            with open(csv_path, 'a+') as csv:
                 csv.write(user[1])
-                csv.close()
 
 
-def generate_data(writing_queue, threadID, OPALDataGenerator, num_users, start_id):
+def generate_data(writing_queue, threadID, opal_data_generator, num_users,
+                  start_id):
     """Generate data of the size required."""
     print("Starting " + str(threadID))
     start_time = time.time()
     print("Creating {} users, starting from id "
           "{}".format(num_users, start_id))
     for i in range(num_users):
-        user = (str(start_id + i), OPALDataGenerator.generate_data())
+        user = (str(start_id + i), opal_data_generator.generate_data())
         writing_queue.put(user)
     elapsed_time = time.time() - start_time
     print("The thread {} is done and it took: {}".format(
@@ -108,9 +109,13 @@ def generate_data(writing_queue, threadID, OPALDataGenerator, num_users, start_i
 
 
 if __name__ == "__main__":
-    # Prevent attempt to start a new process before the current process has finished its bootstrapping phase in Windows.
+    # Prevent attempt to start a new process before the current process
+    # has finished its bootstrapping phase in Windows.
     if os.name == 'nt':
         mp.freeze_support()
 
-    odg = OPALDataGenerator(args.num_antennas, args.num_antennas_per_user, args.num_records_per_user)
+    # TODO: Remove bandicoot extended.
+    odg = OPALDataGenerator(args.num_antennas, args.num_antennas_per_user,
+                            args.num_records_per_user,
+                            bandicoot_extended=True)
     generate(odg, args.num_users, args.num_threads, args.offset)

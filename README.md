@@ -23,7 +23,9 @@ bash test.sh
 
 ## Usage Instructions
 
-This library is to be used for writing new algorithms to be run on OPAL Platform. To write any new algorithm, you will have to inherit `opal.core.OPALAlgorithm` and implement `map` and `reduce` function. Ensure that you do not import any functions from external file and all the helper functions are available in the single file containing Alorithm class.
+This library is to be used for writing new algorithms to be run on OPAL Platform. To write any new algorithm, you will have to inherit `opal.core.OPALAlgorithm` and implement `map` function. Ensure that you do not import any functions from external file and all the helper functions are available in the single file containing Algorithm class.
+
+`map` function will get `params` which are the parameters of the request and (`bandicoot_user`)[http://bandicoot.mit.edu/docs/reference/generated/bandicoot.User.html#bandicoot.User]
 
 Also do ensure that you do not install any packages, except the ones installed by the opalalgorithm package.
 

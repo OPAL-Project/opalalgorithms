@@ -2,4 +2,4 @@ numpy
 scipy
 sklearn
 configargparse
-bandicoot
+git+https://github.com/emalgorithm/bandicoot.git@master

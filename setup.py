@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='opalalgorithms',
@@ -11,11 +11,7 @@ setup(
     author_email='shubhamjain0594@gmail.com',
     url='https://github.com/shubhamjain0594/opalalgorithms',
     license='MIT',
-    packages=[
-        'opalalgorithms',
-        'opalalgorithms.core',
-        'opalalgorithms.utils'
-    ],
+    packages=find_packages(),
     include_package_data=True,
     install_requires=['setuptools'],
     zip_safe=False,
@@ -23,7 +19,7 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License (MIT)',
+        'License :: OSI Approved MIT License (MIT)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
     ],

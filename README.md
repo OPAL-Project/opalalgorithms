@@ -33,10 +33,12 @@ A sample algorithm implementation for finding population density can be found at
 
 Use `tests/generate_data.py` for generating synthetic data for testing. Take a look at `tests/test.sh` and `tests/test_algos.py` to check how to test your algorithm implementation.
 
+## Documentation
+
+Please find hosted documentation [here](http://opalalgorithms.readthedocs.io/en/latest/index.html).
+
 ## TODO
 
-- Docs
-- PyPy hosting
 - Flake8 and coding standard checks
 
 ## Notes

@@ -6,7 +6,7 @@
 Welcome to OPAL Algorithms's documentation!
 ===========================================
 
-`opalalgorithms<https://github.com/shubhamjain0594/opalalgorithms>`_ provides an interface to implement algorithms to be used in OPAL project. Each algorithm will be run using multiprocessing library.
+`opalalgorithms <https://github.com/shubhamjain0594/opalalgorithms>`_ provides an interface to implement algorithms to be used in OPAL project. Each algorithm will be run using multiprocessing library.
 
 .. toctree::
    :maxdepth: 2

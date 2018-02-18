@@ -28,12 +28,10 @@ class SampleAlgo1(OPALAlgorithm):
             bandicoot_user (bandicoot.core.User): Bandicoot user object.
 
         """
-        # TODO: Use aggregation level setting from
-        # antenna_id, location_level_1 or location_level_2
         home = bandicoot_user.recompute_home()
         if not home:
             return None
-        return {home.antenna: 1}
+        return {getattr(home, params["aggregation_level"]): 1}
 
     def __helper(self, x):
         """Private helper function."""

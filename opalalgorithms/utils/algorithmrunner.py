@@ -28,10 +28,11 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj,
         bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
             user_csv_file), describe=dev_mode, warnings=dev_mode)
         result = algorithmobj.map(params, bandicoot_user)
-        if is_valid_result(result):
-            writing_queue.put(result)
-        elif dev_mode:
-            print("Error in result {}".format(result))
+        if result:
+            if is_valid_result(result):
+                writing_queue.put(result)
+            elif dev_mode:
+                print("Error in result {}".format(result))
 
 
 def collector(writing_queue, params, dev_mode=False):

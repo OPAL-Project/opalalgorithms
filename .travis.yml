@@ -7,9 +7,13 @@ install:
 - python setup.py install
 script:
 - cd tests && bash test.sh && cd ../
+- python setup.py clean --all
 deploy:
   provider: pypi
   user: shubhamjain0594
   password:
     secure: gQ6vSnStbnzb7Wfaz1Rs85x/Ll962WSpTIUK8sst94P4+xfb0+rU1TBhAXf3HZXLpCv5+UenK5LsNHhMISG4rltBIBVJplJqg+Eo+NikBuSccBVpXMCd2dBzZovDyde3+m0F8YEWcOg30toLniryUFEI1D2Cmk3EZMZSZ0UJ9+heqvHyrSR8k/++gxL7AUY58NCnSVApRX2JGAh+Bkb8dWQbMMl8ORiKhYqsufAjDHxLNlB6J2qz8E1CeZdvYgxSwituM1fngx5191cl8EwrvxCro7Z6npAx0JeQ5jpVesb9lrs9R10alVJwZe3md6VnS5L+pvj40tDTKwCY5yHjMaOR/czE4kzCNmsCO/IRGffgR+iv9/N3tnffkl5CuPD1nEwDqvUgmQdW+DUY7dURHlVYWinxjRv87DxNT4x4Xx+xX0YsaCSfWl7eO038d5hkyW9k2YedvVxz1o5mgdrFYuioOkmniln10f2S2gy4nhdqc7xuZCQxrD2Bwo79wuYrKz1WwbcPMSeZLIltXvMxmHnHFNGOcKySSFhmw4TsvFms9G2cjuFT5yoX3WyFb4BMBIJg/sTrfK+fUL1GyWjxg+9FO4y9JCzX35JSdLedF/BQn1Ob29V0vPmksacsPllRokSDprwnJEPnTyaNM/BY3Px+2jQuXePfHlOD11BkYos=
-  
+  distributions: "sdist bdist_wheel"
+before_deploy:
+  - pwd
+  - ls

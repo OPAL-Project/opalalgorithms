@@ -83,7 +83,7 @@ def is_valid_result(result):
         bool: Specifying if the result is valid or not.
 
     Todo:
-        * String as key has privacy concerns, might need to change later.
+        * Define what is valid with privacy and other concerns
 
     """
     # check result must be a dict

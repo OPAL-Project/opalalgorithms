@@ -3,22 +3,8 @@ from __future__ import division, print_function
 from opalalgorithms.core import OPALAlgorithm
 
 
-def helper(x):
-    """Just a helper function."""
-    return __helper(x)
-
-
-def __helper(x):
-    """Private function."""
-    return x
-
-
 class SampleAlgo1(OPALAlgorithm):
     """Calculate population density."""
-
-    def __init__(self):
-        """Initialize population density."""
-        super(SampleAlgo1, self).__init__()
 
     def map(self, params, bandicoot_user):
         """Get home of the bandicoot user.
@@ -32,11 +18,3 @@ class SampleAlgo1(OPALAlgorithm):
         if not home:
             return None
         return {getattr(home, params["aggregation_level"]): 1}
-
-    def __helper(self, x):
-        """Private helper function."""
-        return self._helper(x)
-
-    def _helper(self, x):
-        """Fake Private helper function."""
-        return helper(x)

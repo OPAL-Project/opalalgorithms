@@ -7,11 +7,12 @@ import os
 import math
 import bandicoot
 import six
+from RestrictedPython import compile_restricted_exec, safe_builtins
 
 __all__ = ["AlgorithmRunner"]
 
 
-def mapper(writing_queue, params, users_csv_files, algorithmobj,
+def mapper(writing_queue, algorithmcode, classname, params, users_csv_files,
            dev_mode=False):
     """Call the map function and insert result into the queue if valid.
 
@@ -23,6 +24,13 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj,
         dev_mode (bool): Development mode.
 
     """
+    compiled_result = compile_restricted_exec(algorithmcode, dont_inherit=0)
+    safe_locals = {}
+    safe_globals = safe_builtins
+    print(compiled_result)
+    exec(compiled_result.code, safe_globals, safe_locals)
+    algorithmclass = safe_locals[classname]
+    algorithmobj = algorithmclass()
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
         bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
@@ -115,9 +123,10 @@ class AlgorithmRunner(object):
 
     """
 
-    def __init__(self, algorithmobj, dev_mode=False):
+    def __init__(self, algorithmcode, classname, dev_mode=False):
         """Initialize class."""
-        self.algorithmobj = algorithmobj
+        self.algorithmcode = algorithmcode
+        self.classname = classname
         self.dev_mode = dev_mode
 
     def __call__(self, params, data_dir, num_threads):
@@ -164,7 +173,7 @@ class AlgorithmRunner(object):
         i = 0
         for thread_id in range(num_threads):
             jobs.append(pool.apply_async(mapper, (
-                writing_queue, params, chunks_list[i], self.algorithmobj,
+                writing_queue, self.algorithmcode, self.classname, params, chunks_list[i],
                 self.dev_mode)))
             i += 1
 

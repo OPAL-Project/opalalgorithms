@@ -14,7 +14,8 @@ def test_algos():
         sampling=0.2,
         aggregation_level='location_level_1')
     algorunner = AlgorithmRunner(code_string, 'SampleAlgo1', dev_mode=False)
-    result = algorunner(params, data_dir, number_of_threads)
+    result = algorunner(params, data_dir, number_of_threads,
+                        multiprocess=False)
     print(result)
 
 

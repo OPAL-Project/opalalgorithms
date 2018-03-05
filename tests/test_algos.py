@@ -7,16 +7,20 @@ from opalalgorithms.utils import AlgorithmRunner
 def test_algos():
     """Main function."""
     # load the algorithm
-    mod = __import__('sample_algos.algo1', fromlist=['SampleAlgo1'])
-    algorithmclass = getattr(mod, 'SampleAlgo1')
-    algorithmobj = algorithmclass()
+    # mod = __import__('sample_algos.algo1', fromlist=['SampleAlgo1'])
+    # algorithmclass = getattr(mod, 'SampleAlgo1')
+    # algorithmobj = algorithmclass()
+    algorithm = dict(
+        code=open('sample_algos/algo1.py').read(),
+        className='SampleAlgo1'
+    )
 
     data_dir = str(sys.argv[1])
     number_of_threads = int(sys.argv[2])
     params = dict(
         sampling=0.2,
         aggregation_level='location_level_1')
-    algorunner = AlgorithmRunner(algorithmobj, dev_mode=True)
+    algorunner = AlgorithmRunner(algorithm, dev_mode=False)
     result = algorunner(params, data_dir, number_of_threads)
     print(result)
 

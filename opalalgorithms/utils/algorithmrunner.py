@@ -7,11 +7,13 @@ import os
 import math
 import bandicoot
 import six
+import codejail
+import textwrap
 
 __all__ = ["AlgorithmRunner"]
 
 
-def mapper(writing_queue, params, users_csv_files, algorithmobj,
+def mapper(writing_queue, params, users_csv_files, algorithm,
            dev_mode=False):
     """Call the map function and insert result into the queue if valid.
 
@@ -19,16 +21,31 @@ def mapper(writing_queue, params, users_csv_files, algorithmobj,
         writing_queue (mp.manager.Queue): Queue for inserting results.
         params (dict): Parameters to be used by each map of the algorithm.
         users_csv_files (list): List of paths of csv files of users.
-        algorithmobj (opalalgorithm.core.OPALAlgorithm): OPALAlgorithm object.
+        algorithm (dict): Dictionary containing algorithm to be executed.
         dev_mode (bool): Development mode.
 
     """
+    jail = codejail.configure('python', '/home/codejail/anaconda3/envs/sandbox/bin/python', user='sandbox')
+    jail = codejail.get_codejail('python')
     for user_csv_file in users_csv_files:
         username = os.path.splitext(os.path.basename(user_csv_file))[0]
-        bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
-            user_csv_file), describe=dev_mode, warnings=dev_mode)
-        result = algorithmobj.map(params, bandicoot_user)
-        if result:
+        globals_dict = {
+            'username': username,
+            'dev_mode': dev_mode,
+            'params': params,
+        }
+        code = algorithm['code'] + '\n' + textwrap.dedent(
+            """
+            import bandicoot
+
+            algorithmobj = {}()
+            bandicoot_user = bandicoot.read_csv(username, '', describe=dev_mode, warnings=dev_mode)
+            result = algorithmobj.map(params, bandicoot_user)
+            """.format(algorithm['className']))
+        print(code)
+        print(globals_dict)
+        result = jail.safe_exec(code, globals_dict, files=[user_csv_file])
+        if globals_dict['result']:
             if is_valid_result(result):
                 writing_queue.put(result)
             elif dev_mode:
@@ -110,14 +127,14 @@ class AlgorithmRunner(object):
     """Algorithm runner.
 
     Args:
-        algorithmobj (OPALAlgorithm): Instance of an opal algorithm.
+        algorithm (dict): Dictionary containing `code` and `className`.
         dev_mode (bool): Development mode switch
 
     """
 
-    def __init__(self, algorithmobj, dev_mode=False):
+    def __init__(self, algorithm, dev_mode=False):
         """Initialize class."""
-        self.algorithmobj = algorithmobj
+        self.algorithm = algorithm
         self.dev_mode = dev_mode
 
     def __call__(self, params, data_dir, num_threads):
@@ -164,7 +181,7 @@ class AlgorithmRunner(object):
         i = 0
         for thread_id in range(num_threads):
             jobs.append(pool.apply_async(mapper, (
-                writing_queue, params, chunks_list[i], self.algorithmobj,
+                writing_queue, params, chunks_list[i], self.algorithm,
                 self.dev_mode)))
             i += 1
 

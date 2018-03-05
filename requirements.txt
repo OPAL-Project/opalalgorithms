@@ -1,6 +1,6 @@
 numpy
 scipy
-sklearn
+scikit-learn
 setuptools
 configargparse
 git+https://github.com/emalgorithm/bandicoot.git@master

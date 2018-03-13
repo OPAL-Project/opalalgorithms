@@ -24,7 +24,7 @@ def test_algos():
             sampling=0.2,
             aggregation_level='location_level_1')
         algorunner = AlgorithmRunner(
-            algorithm, dev_mode=False, multiprocess=True, sandboxing=False)
+            algorithm, dev_mode=False, multiprocess=False, sandboxing=False)
         result = algorunner(params, data_dir, number_of_threads)
         print(i, result)
         total_time += result

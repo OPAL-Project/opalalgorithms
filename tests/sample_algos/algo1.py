@@ -18,7 +18,6 @@ class SampleAlgo1(OPALAlgorithm):
             bandicoot_user (bandicoot.core.User): Bandicoot user object.
 
         """
-        a = 1 / 0
         home = bandicoot_user.recompute_home()
         if not home:
             return None

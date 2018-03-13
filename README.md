@@ -1,5 +1,7 @@
 # OPAL Algorithms
 
+[![Build Status](https://travis-ci.org/shubhamjain0594/opalalgorithms.svg?branch=master)](https://travis-ci.org/shubhamjain0594/opalalgorithms)
+
 Algorithms for OPAL Project. This repo contains python library of algorithms being used in OPAL Project. To implement any new algorithm, install this library, create a new class by inheriting the base class. Implement `map` function which takes `bandicoot` user and `params` for the algorithm.
 
 Each algorithm runs in a sandboxed environment. We use [codejail](https://github.com/edx/codejail) for sandboxing. Codejail uses [apparmor](https://wiki.ubuntu.com/AppArmor) to ensure a proper sandboxed environment.
@@ -9,7 +11,8 @@ Each algorithm runs in a sandboxed environment. We use [codejail](https://github
 Before you setup the library, it is very important you setup the codejail environment. Instructions for setting up can be found [here](https://github.com/edx/codejail). You will have to setup some environmental variables before setup.
 
 ```bash
-export 
+export OPALALGO_SANDBOX_VENV=/path/to/sandbox/environment
+export OPALALGO_SANDBOX_USER=sandbox-user
 ```
 
 OPALAlgorithms works both in python 2.7 and python 3.6 environments. Before proceeding it is strictly recommended you activate virtualenv of python 2.7 or python 3.6 .To install follow the following steps:

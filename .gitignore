@@ -104,3 +104,5 @@ ENV/
 # random data
 data/
 .idea/
+
+sftp-config.json

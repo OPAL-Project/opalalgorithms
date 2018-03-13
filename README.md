@@ -49,8 +49,6 @@ Please find hosted documentation [here](http://opalalgorithms.readthedocs.io/en/
 
 ## TODO
 
-- Flake8 and coding standard checks in travis
 - Codejail setup for memory and other restrictions
-- 
 
 ## Notes

@@ -167,14 +167,12 @@ def is_valid_result(result):
 
     Note:
         Result is valid if it is a dict. All keys of the dict must be
-        be a point or string. All points must be 1d or all must be 2d.
-        All values must be numbers. These results are sent to reducer
-        which will sum, mean, median, mode of the values belonging to same key.
+        be a string. All values must be numbers. These results are sent to
+        reducer which will sum, count, mean, median, mode of the values
+        belonging to same key.
 
         Example:
             - {"alpha1": 1, "ant199": 1, ..}
-            - {(231, 283): 1, (154, 87): 0.5, ..}
-            - {(1): 7, (356): 6, ..}
 
     Returns:
         bool: Specifying if the result is valid or not.
@@ -190,14 +188,8 @@ def is_valid_result(result):
     if not (all([isinstance(x, six.integer_types) or isinstance(x, float)
                  for x in six.itervalues(result)])):
         return False
-    # check each key must either be a string or tuple, a dict cannot have some
-    # keys as string and some as tuple. If it is tuple then all keys must
-    # either be of length 1 or length 2.
-    if not ((all([isinstance(x, tuple) and len(x) == 2
-                  for x in six.iterkeys(result)]) or
-             all([isinstance(x, tuple) and len(x) == 1
-                  for x in six.iterkeys(result)])) or
-            all([isinstance(x, six.string_types)
+    # check each key must be a string.
+    if not (all([isinstance(x, six.string_types)
                  for x in six.iterkeys(result)])):
         return False
     return True

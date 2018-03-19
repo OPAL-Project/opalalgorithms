@@ -1,1 +1,1 @@
-from .base import OPALAlgorithm
+from .base import OPALAlgorithm  # noqa: F401

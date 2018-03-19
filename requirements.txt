@@ -1,6 +1,8 @@
 numpy
 scipy
-sklearn
+scikit-learn
 setuptools
 configargparse
+six
 git+https://github.com/emalgorithm/bandicoot.git@master
+git+https://github.com/OPAL-Project/codejail.git

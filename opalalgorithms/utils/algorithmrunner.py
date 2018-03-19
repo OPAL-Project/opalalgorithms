@@ -5,34 +5,136 @@ import random
 import time
 import os
 import math
-import bandicoot
 import six
+import codejail
+from codejail.safe_exec import not_safe_exec
+from codejail.limits import set_limit
+import textwrap
 
 __all__ = ["AlgorithmRunner"]
 
 
-def mapper(writing_queue, params, users_csv_files, algorithmobj,
-           dev_mode=False):
+def get_jail():
+    """Return codejail object.
+
+    Note:
+        - Please set environmental variables `OPALALGO_SANDBOX_VENV`
+            and `OPALALGO_SANDBOX_USER` before calling this function.
+        - `OPALALGO_SANDBOX_VENV` must be set to the path of the sandbox
+            virtual environment.
+        - `OPALALGO_SANDBOX_USER` must be set to the user running the
+            sandboxed algorithms.
+    """
+    sandbox_env = os.environ.get('OPALALGO_SANDBOX_VENV')
+    sandbox_user = os.environ.get('OPALALGO_SANDBOX_USER')
+    set_limit("REALTIME", None)
+    jail = codejail.configure(
+        'python',
+        os.path.join(sandbox_env, 'bin', 'python'),
+        user=sandbox_user)
+    jail = codejail.get_codejail('python')
+    return jail
+
+
+def process_user_csv(params, user_csv_file, algorithm, dev_mode, sandboxing,
+                     jail):
+    """Process a single user csv file.
+
+    Args:
+        params (dict): Parameters for the request.
+        user_csv_file (string): Path to user csv file.
+        algorithm (dict): Dictionary with keys `code` and `className`
+            specifying algorithm code and className.
+        dev_mode (bool): Should the algorithm run in development mode or
+            production mode.
+        sandboxing (bool): Should sandboxing be used or not.
+        jail (codejail.Jail): Jail object.
+
+    Returns:
+        Result of the execution.
+
+    Raises:
+        SafeExecException: If the execution wasn't successful.
+
+    """
+    username = os.path.splitext(os.path.basename(user_csv_file))[0]
+    globals_dict = {
+        'params': params,
+    }
+    user_specific_code = textwrap.dedent(
+        """
+        def run_code():
+            import bandicoot
+
+            algorithmobj = {}()
+            bandicoot_user = bandicoot.read_csv(
+               '{}', '', describe={}, warnings={})
+            return algorithmobj.map(params, bandicoot_user)
+        result = run_code()
+        """.format(
+            algorithm['className'], username, str(dev_mode), str(dev_mode),
+            os.path.basename(user_csv_file)))
+    code = "{}\n{}".format(algorithm['code'], user_specific_code)
+    if sandboxing:
+        jail.safe_exec(
+            code, globals_dict, files=[user_csv_file])
+    else:
+        not_safe_exec(
+            code, globals_dict, files=[user_csv_file])
+    result = globals_dict['result']
+    return result
+
+
+def process(params, users_csv_files, algorithm, dev_mode, sandboxing):
+    """Process files as per arguments.
+
+    Args:
+        params (dict): Parameters for the request.
+        users_csv_files (list): List of paths to user csv files.
+        algorithm (dict): Dictionary with keys `code` and `className`
+            specifying algorithm code and className.
+        dev_mode (bool): Should the algorithm run in development mode or
+            production mode.
+        sandboxing (bool): Should sandboxing be used or not.
+
+    """
+    jail = get_jail()
+    for user_csv_file in users_csv_files:
+        yield process_user_csv(
+            params, user_csv_file, algorithm, dev_mode,
+            sandboxing, jail)
+
+
+def mapper(writing_queue, params, users_csv_files, algorithm,
+           dev_mode=False, sandboxing=True):
     """Call the map function and insert result into the queue if valid.
 
     Args:
         writing_queue (mp.manager.Queue): Queue for inserting results.
         params (dict): Parameters to be used by each map of the algorithm.
         users_csv_files (list): List of paths of csv files of users.
-        algorithmobj (opalalgorithm.core.OPALAlgorithm): OPALAlgorithm object.
-        dev_mode (bool): Development mode.
-
+        algorithm (dict): Dictionary with keys `code` and `className`
+            specifying algorithm code and className.
+        dev_mode (bool): Should the algorithm run in development mode or
+            production mode.
+        sandboxing (bool): Should sandboxing be used or not.
     """
-    for user_csv_file in users_csv_files:
-        username = os.path.splitext(os.path.basename(user_csv_file))[0]
-        bandicoot_user = bandicoot.read_csv(username, os.path.dirname(
-            user_csv_file), describe=dev_mode, warnings=dev_mode)
-        result = algorithmobj.map(params, bandicoot_user)
+    for result in process(params, users_csv_files, algorithm, dev_mode,
+                          sandboxing):
         if result:
             if is_valid_result(result):
                 writing_queue.put(result)
             elif dev_mode:
                 print("Error in result {}".format(result))
+
+
+def process_result(result, params, dev_mode):
+    if result is not None:
+        if dev_mode:
+            print("posting result to aggregator {}".format(result))
+        else:
+            # TODO: Post to aggregator
+            pass
 
 
 def collector(writing_queue, params, dev_mode=False):
@@ -54,12 +156,7 @@ def collector(writing_queue, params, dev_mode=False):
         # if got signal 'kill' exit the loop
         if result == 'kill':
             break
-        if result is not None:
-            if dev_mode:
-                print("posting result to aggregator {}".format(result))
-            else:
-                # TODO: Post to aggregator
-                pass
+        process_result(result, params, dev_mode)
 
 
 def is_valid_result(result):
@@ -70,14 +167,12 @@ def is_valid_result(result):
 
     Note:
         Result is valid if it is a dict. All keys of the dict must be
-        be a point or string. All points must be 1d or all must be 2d.
-        All values must be numbers. These results are sent to reducer
-        which will sum, mean, median, mode of the values belonging to same key.
+        be a string. All values must be numbers. These results are sent to
+        reducer which will sum, count, mean, median, mode of the values
+        belonging to same key.
 
         Example:
             - {"alpha1": 1, "ant199": 1, ..}
-            - {(231, 283): 1, (154, 87): 0.5, ..}
-            - {(1): 7, (356): 6, ..}
 
     Returns:
         bool: Specifying if the result is valid or not.
@@ -93,14 +188,8 @@ def is_valid_result(result):
     if not (all([isinstance(x, six.integer_types) or isinstance(x, float)
                  for x in six.itervalues(result)])):
         return False
-    # check each key must either be a string or tuple, a dict cannot have some
-    # keys as string and some as tuple. If it is tuple then all keys must
-    # either be of length 1 or length 2.
-    if not ((all([isinstance(x, tuple) and len(x) == 2
-                  for x in six.iterkeys(result)]) or
-             all([isinstance(x, tuple) and len(x) == 1
-                  for x in six.iterkeys(result)])) or
-            all([isinstance(x, six.string_types)
+    # check each key must be a string.
+    if not (all([isinstance(x, six.string_types)
                  for x in six.iterkeys(result)])):
         return False
     return True
@@ -110,15 +199,22 @@ class AlgorithmRunner(object):
     """Algorithm runner.
 
     Args:
-        algorithmobj (OPALAlgorithm): Instance of an opal algorithm.
+        algorithm (dict): Dictionary containing `code` and `className`.
         dev_mode (bool): Development mode switch
+        multiprocess (bool): Use multiprocessing or single process for
+            complete execution.
+        sandboxing (bool): Use sandboxing for execution or execute in unsafe
+            environment.
 
     """
 
-    def __init__(self, algorithmobj, dev_mode=False):
+    def __init__(self, algorithm, dev_mode=False, multiprocess=True,
+                 sandboxing=True):
         """Initialize class."""
-        self.algorithmobj = algorithmobj
+        self.algorithm = algorithm
         self.dev_mode = dev_mode
+        self.multiprocess = multiprocess
+        self.sandboxing = sandboxing
 
     def __call__(self, params, data_dir, num_threads):
         """Run algorithm.
@@ -146,10 +242,19 @@ class AlgorithmRunner(object):
             if f.endswith('.csv')]
         sampling = int(math.ceil(params["sampling"] * len(csv_files)))
         sampled_csv_files = random.sample(csv_files, sampling)
-        step_size = int(math.ceil(len(sampled_csv_files) / num_threads))
-        chunks_list = [sampled_csv_files[j:min(j + step_size, len(
-                       sampled_csv_files))] for j in range(
-                        0, len(sampled_csv_files), step_size)]
+        if self.multiprocess:
+            self._multiprocess(params, num_threads, sampled_csv_files)
+        else:
+            self._singleprocess(params, num_threads, sampled_csv_files)
+
+        elapsed_time = time.time() - start_time
+        return elapsed_time
+
+    def _multiprocess(self, params, num_threads, csv_files):
+        step_size = int(math.ceil(len(csv_files) / num_threads))
+        chunks_list = [csv_files[j:min(j + step_size, len(
+                       csv_files))] for j in range(
+                        0, len(csv_files), step_size)]
 
         # set up parallel processing
         manager = mp.Manager()
@@ -161,12 +266,10 @@ class AlgorithmRunner(object):
         pool.apply_async(collector, (writing_queue, params, self.dev_mode))
 
         # Compute the density
-        i = 0
-        for thread_id in range(num_threads):
+        for chunk in chunks_list:
             jobs.append(pool.apply_async(mapper, (
-                writing_queue, params, chunks_list[i], self.algorithmobj,
-                self.dev_mode)))
-            i += 1
+                writing_queue, params, chunk, self.algorithm, self.dev_mode,
+                self.sandboxing)))
 
         # Clean up parallel processing (close pool, wait for processes to
         # finish, kill writing_queue, wait for queue to be killed)
@@ -175,5 +278,8 @@ class AlgorithmRunner(object):
             job.get()
         writing_queue.put('kill')  # stop collection
         pool.join()
-        elapsed_time = time.time() - start_time
-        return elapsed_time
+
+    def _singleprocess(self, params, num_threads, csv_files):
+        for result in process(params, csv_files, self.algorithm,
+                              self.dev_mode, self.sandboxing):
+            process_result(result, params, self.dev_mode)

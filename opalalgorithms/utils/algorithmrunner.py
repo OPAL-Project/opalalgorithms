@@ -10,8 +10,19 @@ import codejail
 from codejail.safe_exec import not_safe_exec
 from codejail.limits import set_limit
 import textwrap
+import sys
+
 
 __all__ = ["AlgorithmRunner"]
+
+
+def check_environ():
+    """Check that all environment variable exists."""
+    req_environ_vars = ['OPALALGO_SANDBOX_VENV', 'OPALALGO_SANDBOX_USER']
+    for environ_var in req_environ_vars:
+        if environ_var not in os.environ:
+            print('Environment variable {} not set'.format(environ_var))
+            sys.exit(0)
 
 
 def get_jail():
@@ -236,6 +247,7 @@ class AlgorithmRunner(object):
             int: Amount of time required for computation in microseconds.
 
         """
+        check_environ()
         start_time = time.time()
         csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)

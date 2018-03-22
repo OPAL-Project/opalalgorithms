@@ -21,8 +21,7 @@ def check_environ():
     req_environ_vars = ['OPALALGO_SANDBOX_VENV', 'OPALALGO_SANDBOX_USER']
     for environ_var in req_environ_vars:
         if environ_var not in os.environ:
-            print('Environment variable {} not set'.format(environ_var))
-            sys.exit(0)
+            raise RuntimeError('Environment variable {} not set'.format(environ_var))
 
 
 def get_jail():

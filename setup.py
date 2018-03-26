@@ -13,7 +13,15 @@ setup(
     license='MIT',
     packages=find_packages(),
     include_package_data=True,
-    install_requires=['setuptools'],
+    install_requires=[
+        'setuptools',
+        'codejail',
+        'bandicoot',
+        'six',
+        'configargparse'],
+    dependency_links=[
+        'git+https://github.com/emalgorithm/bandicoot.git#egg=bandicoot',
+        'git+https://github.com/OPAL-Project/codejail.git#egg=codejail'],
     zip_safe=False,
     classifiers=[
         'Development Status :: 5 - Production/Stable',

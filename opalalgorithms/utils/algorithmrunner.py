@@ -10,7 +10,6 @@ import codejail
 from codejail.safe_exec import not_safe_exec
 from codejail.limits import set_limit
 import textwrap
-import sys
 
 
 __all__ = ["AlgorithmRunner"]
@@ -21,7 +20,8 @@ def check_environ():
     req_environ_vars = ['OPALALGO_SANDBOX_VENV', 'OPALALGO_SANDBOX_USER']
     for environ_var in req_environ_vars:
         if environ_var not in os.environ:
-            raise RuntimeError('Environment variable {} not set'.format(environ_var))
+            raise RuntimeError(
+                'Environment variable {} not set'.format(environ_var))
 
 
 def get_jail():

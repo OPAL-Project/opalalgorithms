@@ -15,10 +15,10 @@ setup(
     include_package_data=True,
     install_requires=[
         'setuptools',
-        'codejail',
         'bandicoot',
         'six',
-        'configargparse'],
+        'configargparse',
+        'codejail'],
     dependency_links=[
         'git+https://github.com/emalgorithm/bandicoot.git#egg=bandicoot',
         'git+https://github.com/OPAL-Project/codejail.git#egg=codejail'],

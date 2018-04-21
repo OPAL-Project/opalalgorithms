@@ -1,3 +1,4 @@
+"""Initialization of submodule."""
 from .algorithmrunner import AlgorithmRunner  # noqa: F401
 from .datagenerator import OPALDataGenerator  # noqa: F401
 from .bandicoot_format import fields  # noqa: F401

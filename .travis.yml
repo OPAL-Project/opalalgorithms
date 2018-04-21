@@ -1,13 +1,27 @@
+dist: xenial
 language: python
 python:
   - '2.7'
   - '3.6'
+services:
+  - docker
 install:
-  - pip install flake8
+  - sudo apt-get install -y apparmor apparmor-profiles apparmor-utils
+  - pip install -r tests/requirements.txt
+  - python setup.py install
+  - pip install virtualenv
+  - virtualenv ./sandbox
+  - chmod +x ./sandbox/bin/activate
+  - source ./sandbox/bin/activate
   - pip install -r requirements.txt
   - python setup.py install
+  - deactivate
+  - useradd -ms /bin/bash sandbox
+  - pwd
+  - ls
 before_script:
   - flake8 .
+  - pydocstyle .
 script:
   - cd tests && bash test.sh && cd ../
   - python setup.py clean --all

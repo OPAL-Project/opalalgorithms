@@ -1,0 +1,12 @@
+#include <tunables/global>
+
+/usr/venv/sandbox/bin/python {
+    #include <abstractions/base>
+    #include <abstractions/python>
+
+    /usr/venv/sandbox/** mr,
+
+    /tmp/codejail-*/ rix,
+    /tmp/codejail-*/** wrix,
+    /etc/mime.types r,
+}

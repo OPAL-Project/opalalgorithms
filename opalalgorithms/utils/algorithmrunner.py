@@ -10,9 +10,19 @@ import codejail
 from codejail.safe_exec import not_safe_exec
 from codejail.limits import set_limit
 import textwrap
+import signal
+import sys
 
 
 __all__ = ["AlgorithmRunner"]
+
+
+class GracefulExit(Exception):
+    pass
+
+
+def sigint_handler(signum, thread):
+    raise GracefulExit()
 
 
 def check_environ():
@@ -38,7 +48,7 @@ def get_jail():
     sandbox_env = os.environ.get('OPALALGO_SANDBOX_VENV')
     sandbox_user = os.environ.get('OPALALGO_SANDBOX_USER')
     set_limit("REALTIME", None)
-    jail = codejail.configure(
+    codejail.configure(
         'python',
         os.path.join(sandbox_env, 'bin', 'python'),
         user=sandbox_user)
@@ -256,7 +266,7 @@ class AlgorithmRunner(object):
         if self.multiprocess:
             self._multiprocess(params, num_threads, sampled_csv_files)
         else:
-            self._singleprocess(params, num_threads, sampled_csv_files)
+            self._singleprocess(params, sampled_csv_files)
 
         elapsed_time = time.time() - start_time
         return elapsed_time
@@ -273,24 +283,32 @@ class AlgorithmRunner(object):
         jobs = []
 
         # additional 1 process for writer
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         pool = mp.Pool(processes=num_threads + 1)
-        pool.apply_async(collector, (writing_queue, params, self.dev_mode))
+        signal.signal(signal.SIGINT, sigint_handler)
+        try:
+            pool.apply_async(collector, (writing_queue, params, self.dev_mode))
 
-        # Compute the density
-        for chunk in chunks_list:
-            jobs.append(pool.apply_async(mapper, (
-                writing_queue, params, chunk, self.algorithm, self.dev_mode,
-                self.sandboxing)))
+            # Compute the density
+            for chunk in chunks_list:
+                jobs.append(pool.apply_async(mapper, (
+                    writing_queue, params, chunk, self.algorithm, self.dev_mode,
+                    self.sandboxing)))
 
-        # Clean up parallel processing (close pool, wait for processes to
-        # finish, kill writing_queue, wait for queue to be killed)
-        pool.close()
-        for job in jobs:
-            job.get()
-        writing_queue.put('kill')  # stop collection
-        pool.join()
+            # Clean up parallel processing (close pool, wait for processes to
+            # finish, kill writing_queue, wait for queue to be killed)
+            pool.close()
+            for job in jobs:
+                job.get()
+            writing_queue.put('kill')  # stop collection
+            pool.join()
+        except GracefulExit:
+            pool.terminate()
+            print("Exiting")
+            pool.join()
+            raise RuntimeError("Received interrupt signal, exiting. Bye.")
 
-    def _singleprocess(self, params, num_threads, csv_files):
+    def _singleprocess(self, params, csv_files):
         for result in process(params, csv_files, self.algorithm,
                               self.dev_mode, self.sandboxing):
             process_result(result, params, self.dev_mode)

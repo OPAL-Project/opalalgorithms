@@ -1,0 +1,4 @@
+opal ALL=(sandbox) SETENV:NOPASSWD:/usr/venv/sandbox/bin/python
+opal ALL=(sandbox) SETENV:NOPASSWD:/usr/bin/find
+opal ALL=(ALL) NOPASSWD:/usr/bin/pkill
+opal ALL=(ALL) NOPASSWD: ALL

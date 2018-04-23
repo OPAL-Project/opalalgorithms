@@ -7,14 +7,14 @@ services:
   - docker
 install:
   - sudo cp ./tests/setup_scripts/daemon.json /etc/docker/daemon.json
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; docker-compose -f ./test/docker-compose27.yml build tests; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; docker-compose -f ./test/docker-compose36.yml build tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then docker-compose -f ./test/docker-compose27.yml build tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then docker-compose -f ./test/docker-compose36.yml build tests; fi
 before_script:
   - flake8 opalagorithms
   - pydocstyle opalalgorithms
 script:
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; docker-compose -f ./test/docker-compose27.yml up tests; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; docker-compose -f ./test/docker-compose36.yml up tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then docker-compose -f ./test/docker-compose27.yml up tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then docker-compose -f ./test/docker-compose36.yml up tests; fi
 deploy:
   provider: pypi
   user: shubhamjain0594

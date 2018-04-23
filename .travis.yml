@@ -10,11 +10,11 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; docker-compose -f ./test/docker-compose27.yml build tests; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; docker-compose -f ./test/docker-compose36.yml build tests; fi
 before_script:
-  - flake8 .
-  - pydocstyle .
+  - flake8 opalagorithms
+  - pydocstyle opalalgorithms
 script:
-  - cd tests && bash test.sh && cd ../
-  - python setup.py clean --all
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; docker-compose -f ./test/docker-compose27.yml up tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; docker-compose -f ./test/docker-compose36.yml up tests; fi
 deploy:
   provider: pypi
   user: shubhamjain0594

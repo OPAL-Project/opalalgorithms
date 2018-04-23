@@ -5,6 +5,9 @@ import string
 import time
 
 
+__all__ = ["OPALDataGenerator"]
+
+
 class OPALDataGenerator(object):
     """Generate data as per OPAL formats for testing purposes.
 

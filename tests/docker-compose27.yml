@@ -3,7 +3,7 @@ services:
     tests:
         build:
             context: ..
-            dockerfile: ./tests/Dockerfile
+            dockerfile: ./tests/Dockerfile27
         tmpfs:
             - /tmp
         privileged: true

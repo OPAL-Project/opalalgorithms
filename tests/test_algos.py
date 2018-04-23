@@ -53,4 +53,4 @@ def test_interrupt_works():
     proc.send_signal(signal.SIGINT)
     time.sleep(1)
     poll = proc.poll()
-    assert not poll
+    assert poll is not None

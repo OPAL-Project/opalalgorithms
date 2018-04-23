@@ -6,19 +6,9 @@ python:
 services:
   - docker
 install:
-  - sudo apt-get install -y apparmor apparmor-profiles apparmor-utils
-  - pip install -r tests/requirements.txt
-  - python setup.py install
-  - pip install virtualenv
-  - virtualenv ./sandbox
-  - chmod +x ./sandbox/bin/activate
-  - source ./sandbox/bin/activate
-  - pip install -r requirements.txt
-  - python setup.py install
-  - deactivate
-  - sudo useradd -ms /bin/bash sandbox
-  - pwd
-  - ls
+  - sudo cp ./test/setup_scripts/daemon.json /etc/docker/daemon.json
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; docker-compose -f ./test/docker-compose27.yml build tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; docker-compose -f ./test/docker-compose36.yml build tests; fi
 before_script:
   - flake8 .
   - pydocstyle .

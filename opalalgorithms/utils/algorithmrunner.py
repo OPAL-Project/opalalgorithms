@@ -52,7 +52,14 @@ def get_jail():
         'python',
         os.path.join(sandbox_env, 'bin', 'python'),
         user=sandbox_user)
-    jail = codejail.get_codejail('python')
+    codejail.configure(
+        'python3',
+        os.path.join(sandbox_env, 'bin', 'python'),
+        user=sandbox_user)
+    if sys.version_info[0] < 3:
+        jail = codejail.get_codejail('python')
+    else:
+        jail = codejail.get_codejail('python3')
     return jail
 
 
@@ -292,8 +299,8 @@ class AlgorithmRunner(object):
             # Compute the density
             for chunk in chunks_list:
                 jobs.append(pool.apply_async(mapper, (
-                    writing_queue, params, chunk, self.algorithm, self.dev_mode,
-                    self.sandboxing)))
+                    writing_queue, params, chunk, self.algorithm,
+                    self.dev_mode, self.sandboxing)))
 
             # Clean up parallel processing (close pool, wait for processes to
             # finish, kill writing_queue, wait for queue to be killed)

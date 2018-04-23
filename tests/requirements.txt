@@ -8,3 +8,7 @@ git+https://github.com/emalgorithm/bandicoot.git@master
 git+https://github.com/OPAL-Project/codejail.git
 flake8
 pydocstyle
+pytest
+wheel
+
+

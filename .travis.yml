@@ -1,10 +1,12 @@
-dist: xenial
+sudo: required
+dist: trusty
 language: python
 python:
   - '2.7'
   - '3.6'
 services:
   - docker
+  - apparmor
 install:
   - sudo cp ./tests/setup_scripts/daemon.json /etc/docker/daemon.json
   - pip install -r tests/requirements.txt

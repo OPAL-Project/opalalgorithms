@@ -4,7 +4,8 @@ python generate_data.py -c config
 """
 from __future__ import division, print_function
 import configargparse
-from opalalgorithms.utils.datagenerator import OPALDataGenerator
+import opalalgorithms
+from opalalgorithms.utils import OPALDataGenerator
 import time
 import multiprocessing as mp
 import os
@@ -113,6 +114,11 @@ if __name__ == "__main__":
     # has finished its bootstrapping phase in Windows.
     if os.name == 'nt':
         mp.freeze_support()
+
+    # create folder if does not exists
+    if not os.path.exists(args.data_path):
+        os.makedirs(args.data_path)
+
 
     # TODO: Remove bandicoot extended.
     odg = OPALDataGenerator(args.num_antennas, args.num_antennas_per_user,

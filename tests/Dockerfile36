@@ -1,0 +1,73 @@
+# Select source image
+FROM ubuntu:xenial
+
+# Install all dependencies
+ENV TERM linux
+
+RUN apt-get update -q
+
+RUN apt-get install -y dialog apt-utils
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+RUN apt-get upgrade -y --no-install-recommends
+
+RUN apt-get install -y python3-pip python3-dev gcc
+RUN apt-get install -y apparmor apparmor-profiles apparmor-utils
+RUN apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git
+
+# required libraries
+RUN apt-get install -y libpthread-stubs0-dev
+
+RUN apt-get install -y curl
+
+RUN apt-get install -y build-essential
+
+RUN rm -rf /etc/apparmor.d/docker-engine
+
+RUN mkdir /usr/opalalgorithms
+COPY opalalgorithms /usr/opalalgorithms/opalalgorithms
+COPY requirements.txt /usr/opalalgorithms/requirements.txt
+COPY setup.py /usr/opalalgorithms/setup.py
+COPY setup.cfg /usr/opalalgorithms/setup.cfg
+RUN mkdir /usr/opalalgorithms/tests
+COPY tests/requirements.txt /usr/opalalgorithms/tests/requirements.txt
+WORKDIR /usr/opalalgorithms
+
+# Install python library required
+RUN pip3 install -r tests/requirements.txt \
+    && python3 setup.py install
+
+# Creating virtualenv for sandbox
+RUN mkdir /usr/venv
+RUN pip3 install virtualenv \
+    && virtualenv /usr/venv/sandbox \
+    && chmod +x /usr/venv/sandbox/bin/activate
+
+# install libraries in virtualenv
+RUN /bin/bash -c "source /usr/venv/sandbox/bin/activate \
+    && pip3 install -r requirements.txt \
+    && python setup.py install \
+    && deactivate"
+
+# create a sandbox user
+RUN useradd -ms /bin/bash sandbox
+COPY ./tests/setup_scripts/usr.venv.sandbox.bin.python /etc/apparmor.d/
+
+RUN useradd -ms /bin/bash opal
+USER opal
+
+COPY ./tests/setup_scripts/95-sandbox /etc/sudoers.d/
+RUN sudo ldconfig
+
+# generate dummy data
+WORKDIR /home/opal
+RUN mkdir /home/opal/tests
+COPY tests/*.py /home/opal/tests/
+COPY tests/*.conf /home/opal/tests/
+COPY tests/sample_algos /home/opal/tests/sample_algos
+RUN sudo chown -R opal:opal .
+WORKDIR /home/opal/tests
+RUN python3 generate_data.py --conf datagen.conf
+
+CMD sh -c 'sudo mount -tsecurityfs securityfs /sys/kernel/security && sudo apparmor_parser -r -W /etc/apparmor.d/usr.venv.sandbox.bin.python && flake8 opalalgorithms && pydocstyle opalalgorithms && pytest .'

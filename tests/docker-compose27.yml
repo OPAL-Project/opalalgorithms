@@ -1,0 +1,14 @@
+version: '3'
+services:
+    tests:
+        build:
+            context: ..
+            dockerfile: ./tests/Dockerfile27
+        tmpfs:
+            - /tmp
+        privileged: true
+        security_opt:
+            - apparmor:unconfined
+        environment:
+            - OPALALGO_SANDBOX_VENV=/usr/venv/sandbox/
+            - OPALALGO_SANDBOX_USER=sandbox

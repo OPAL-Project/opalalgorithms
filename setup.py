@@ -1,3 +1,4 @@
+"""Setup.py file for installing library."""
 # coding=utf-8
 
 from setuptools import setup, find_packages

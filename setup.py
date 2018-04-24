@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='opalalgorithms',
-    version='0.1.3',
+    version='0.1.4',
     description='OPAL Algorithms. Package to implement algorithms to be run '
                 'on OPAL platform.',
     author='Shubham Jain, Axel Oehmichen, Yves-Alexandre De Montjoye',

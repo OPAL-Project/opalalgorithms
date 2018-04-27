@@ -24,7 +24,7 @@ def run_algo(algorithm_filename, params):
     """Run an algorithm."""
     algorithm = get_algo(algorithm_filename)
     algorunner = AlgorithmRunner(
-        algorithm, dev_mode=False, multiprocess=True, sandboxing=True)
+        algorithm, dev_mode=True, multiprocess=True, sandboxing=True)
     result = algorunner(params, data_path, num_threads)
     return result
 

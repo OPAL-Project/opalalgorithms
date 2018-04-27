@@ -19,7 +19,9 @@ setup(
         'bandicoot',
         'six',
         'configargparse',
-        'codejail'],
+        'codejail',
+        'requests',
+    ],
     dependency_links=[
         'git+https://github.com/emalgorithm/bandicoot.git#egg=bandicoot',
         'git+https://github.com/OPAL-Project/codejail.git#egg=codejail'],

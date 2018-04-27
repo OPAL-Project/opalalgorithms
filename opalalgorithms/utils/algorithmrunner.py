@@ -12,6 +12,7 @@ from codejail.limits import set_limit
 import textwrap
 import signal
 import sys
+import requests
 
 
 __all__ = ["AlgorithmRunner"]
@@ -160,8 +161,8 @@ def process_result(result, params, dev_mode):
         if dev_mode:
             print("posting result to aggregator {}".format(result))
         else:
-            # TODO: Post to aggregator
-            pass
+            requests.post(
+                params['aggregationServiceUrl'], json={'update': result})
 
 
 def collector(writing_queue, params, dev_mode=False):

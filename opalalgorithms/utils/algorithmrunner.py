@@ -269,7 +269,7 @@ class AlgorithmRunner(object):
         csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
             if f.endswith('.csv')]
-        sampling = int(math.ceil(params["sampling"] * len(csv_files)))
+        sampling = int(math.ceil(params["sample"] * len(csv_files)))
         sampled_csv_files = random.sample(csv_files, sampling)
         if self.multiprocess:
             self._multiprocess(params, num_threads, sampled_csv_files)

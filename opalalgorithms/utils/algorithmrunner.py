@@ -1,7 +1,6 @@
 """Given an algorithm object, run the algorithm."""
 from __future__ import division, print_function
 import multiprocessing as mp
-import random
 import time
 import os
 import math
@@ -161,8 +160,10 @@ def process_result(result, params, dev_mode):
         if dev_mode:
             print("posting result to aggregator {}".format(result))
         else:
-            requests.post(
+            response = requests.post(
                 params['aggregationServiceUrl'], json={'update': result})
+            if response.status_code != 200:
+                raise RuntimeError('Aggregation service returned {}'.format(response.status_code))
 
 
 def collector(writing_queue, params, dev_mode=False):
@@ -247,8 +248,7 @@ class AlgorithmRunner(object):
     def __call__(self, params, data_dir, num_threads):
         """Run algorithm.
 
-        Selects the csv files from the data directory. Samples data from
-        the csv files based on sampling rate. Divides the sampled csv files
+        Selects the csv files from the data directory. Divides the csv files
         into chunks of equal size across the `num_threads` threads. Each thread
         performs calls map function of the csv file and processes the result.
         The collector thread, waits for results before posting it to aggregator
@@ -269,12 +269,10 @@ class AlgorithmRunner(object):
         csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
             if f.endswith('.csv')]
-        sampling = int(math.ceil(params["sample"] * len(csv_files)))
-        sampled_csv_files = random.sample(csv_files, sampling)
         if self.multiprocess:
-            self._multiprocess(params, num_threads, sampled_csv_files)
+            self._multiprocess(params, num_threads, csv_files)
         else:
-            self._singleprocess(params, sampled_csv_files)
+            self._singleprocess(params, csv_files)
 
         elapsed_time = time.time() - start_time
         return elapsed_time

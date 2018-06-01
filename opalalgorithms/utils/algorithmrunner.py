@@ -26,7 +26,12 @@ def sigint_handler(signum, thread):
 
 
 def check_environ():
-    """Check that all environment variable exists."""
+    """Check that all environment variable exists.
+
+    Note:
+        - Required environment variables are `OPALALGO_SANDBOX_VENV` and
+            `OPALALGO_SANDBOX_USER`.
+    """
     req_environ_vars = ['OPALALGO_SANDBOX_VENV', 'OPALALGO_SANDBOX_USER']
     for environ_var in req_environ_vars:
         if environ_var not in os.environ:
@@ -99,8 +104,8 @@ def process_user_csv(params, user_csv_file, algorithm, dev_mode, sandboxing,
             return algorithmobj.map(params, bandicoot_user)
         result = run_code()
         """.format(
-            algorithm['className'], username, str(dev_mode), str(dev_mode),
-            os.path.basename(user_csv_file)))
+            algorithm['className'], username,
+            str(dev_mode), str(dev_mode)))
     code = "{}\n{}".format(algorithm['code'], user_specific_code)
     if sandboxing:
         jail.safe_exec(
@@ -163,7 +168,9 @@ def process_result(result, params, dev_mode):
             response = requests.post(
                 params['aggregationServiceUrl'], json={'update': result})
             if response.status_code != 200:
-                raise RuntimeError('Aggregation service returned {}'.format(response.status_code))
+                raise RuntimeError(
+                    'Aggregation service returned {}'.format(
+                        response.status_code))
 
 
 def collector(writing_queue, params, dev_mode=False):
@@ -174,7 +181,7 @@ def collector(writing_queue, params, dev_mode=False):
         results_csv_path (str): CSV where we have to save results.
         dev_mode (bool): Whether to run algorithm in development mode.
 
-    Notes:
+    Note:
         If `dev_mode` is set to true, then collector will just read the result
         but do nothing.
 

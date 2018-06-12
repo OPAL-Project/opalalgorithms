@@ -27,6 +27,6 @@ def run_algo(algorithm_filename, params):
 if __name__ == '__main__':
     """Test that algorithm runner runs successfully."""
     params = dict(
-        sampling=0.2,
+        sample=0.2,
         aggregation_level='location_level_1')
     assert run_algo('sample_algos/algo1.py', params)

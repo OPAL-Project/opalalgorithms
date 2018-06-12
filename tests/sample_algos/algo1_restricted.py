@@ -23,4 +23,4 @@ class SampleAlgo1(OPALAlgorithm):
         home = bandicoot_user.recompute_home()
         if not home:
             return None
-        return {getattr(home, params["aggregation_level"]): 1}
+        return {getattr(home, params["resolution"]): 1}

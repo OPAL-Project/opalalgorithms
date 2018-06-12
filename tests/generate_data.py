@@ -119,7 +119,6 @@ if __name__ == "__main__":
     if not os.path.exists(args.data_path):
         os.makedirs(args.data_path)
 
-
     # TODO: Remove bandicoot extended.
     odg = OPALDataGenerator(args.num_antennas, args.num_antennas_per_user,
                             args.num_records_per_user,

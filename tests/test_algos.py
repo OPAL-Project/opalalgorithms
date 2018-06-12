@@ -32,8 +32,8 @@ def run_algo(algorithm_filename, params):
 def test_algo_success():
     """Test that algorithm runner runs successfully."""
     params = dict(
-        sampling=0.2,
-        aggregation_level='location_level_1')
+        sample=0.2,
+        resolution='location_level_1')
     assert run_algo('sample_algos/algo1.py', params)
 
 
@@ -41,8 +41,8 @@ def test_algo_success():
 def test_algo_failure():
     """Check if codejail is working correctly."""
     params = dict(
-        sampling=0.2,
-        aggregation_level='location_level_1')
+        sample=0.2,
+        resolution='location_level_1')
     assert run_algo('sample_algos/algo1.py', params)
 
 

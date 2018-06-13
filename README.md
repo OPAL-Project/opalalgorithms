@@ -1,6 +1,6 @@
 # OPAL Algorithms
 
-[![Build Status](https://travis-ci.org/shubhamjain0594/opalalgorithms.svg?branch=master)](https://travis-ci.org/shubhamjain0594/opalalgorithms)
+[![Build Status](https://travis-ci.org/OPAL-Project/opalalgorithms.svg?branch=master)](https://travis-ci.org/shubhamjain0594/opalalgorithms)
 
 Algorithms for OPAL Project. This repo contains python library of algorithms being used in OPAL Project. To implement any new algorithm, install this library, create a new class by inheriting the base class. Implement `map` function which takes `bandicoot` user and `params` for the algorithm.
 

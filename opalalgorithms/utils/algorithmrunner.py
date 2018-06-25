@@ -1,7 +1,6 @@
 """Given an algorithm object, run the algorithm."""
 from __future__ import division, print_function
 import multiprocessing as mp
-import time
 import os
 import math
 import six
@@ -160,19 +159,6 @@ def mapper(writing_queue, params, users_csv_files, algorithm,
                 print("Error in result {}".format(result))
 
 
-def process_result(result, params, dev_mode):
-    if result is not None:
-        if dev_mode:
-            print("posting result to aggregator {}".format(result))
-        else:
-            response = requests.post(
-                params['aggregationServiceUrl'], json={'update': result})
-            if response.status_code != 200:
-                raise RuntimeError(
-                    'Aggregation service returned {}'.format(
-                        response.status_code))
-
-
 def collector(writing_queue, params, dev_mode=False):
     """Collect the results in writing queue and post to aggregator.
 
@@ -181,18 +167,23 @@ def collector(writing_queue, params, dev_mode=False):
         results_csv_path (str): CSV where we have to save results.
         dev_mode (bool): Whether to run algorithm in development mode.
 
+    Returns:
+        bool: True on successful exit if `dev_mode` is set to False.
+
     Note:
-        If `dev_mode` is set to true, then collector will just read the result
-        but do nothing.
+        If `dev_mode` is set to true, then collector will just return all the
+        results in a list format.
 
     """
+    result_processor = ResultProcessor(params, dev_mode)
     while True:
         # wait for result to appear in the queue
         result = writing_queue.get()
         # if got signal 'kill' exit the loop
         if result == 'kill':
             break
-        process_result(result, params, dev_mode)
+        result_processor(result)
+    return result_processor.get_result()
 
 
 def is_valid_result(result):
@@ -229,6 +220,62 @@ def is_valid_result(result):
                  for x in six.iterkeys(result)])):
         return False
     return True
+
+
+class ResultProcessor(object):
+    """Process results.
+
+    Args:
+        params (dict): Dictionary of parameters.
+        dev_mode (bool): Specify if dev_mode is on.
+
+    """
+
+    def __init__(self, params, dev_mode):
+        """Initialize result processor."""
+        self.params = params
+        self.dev_mode = dev_mode
+        self.result_list = []
+
+    def __call__(self, result):
+        """Process the result.
+
+        If dev_mode is set to true, it appends the result to a list.
+        Else it send the post request to `aggregationServiceUrl`.
+
+        Args:
+            result (dict): Result of the processed algorithm.
+
+        """
+        if self.dev_mode:
+            self.result_list.append(result)
+        else:
+            self._send_request(result)
+
+    def _send_request(self, result):
+        """Send request to aggregationServiceUrl.
+
+        Args:
+            result (dict): Result to be sent as an update.
+
+        """
+        response = requests.post(
+            self.params['aggregationServiceUrl'], json={'update': result})
+        if response.status_code != 200:
+            raise RuntimeError(
+                'Aggregation service returned {}'.format(
+                    response.status_code))
+
+    def get_result(self):
+        """Return the result after processing.
+
+        Returns:
+            dict: if dev_mode is set to true else returns `True`
+
+        """
+        if self.dev_mode:
+            return self.result_list
+        return True
 
 
 class AlgorithmRunner(object):
@@ -272,23 +319,19 @@ class AlgorithmRunner(object):
 
         """
         check_environ()
-        start_time = time.time()
         csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
             if f.endswith('.csv')]
         if self.multiprocess:
-            self._multiprocess(params, num_threads, csv_files)
+            return self._multiprocess(params, num_threads, csv_files)
         else:
-            self._singleprocess(params, csv_files)
-
-        elapsed_time = time.time() - start_time
-        return elapsed_time
+            return self._singleprocess(params, csv_files)
 
     def _multiprocess(self, params, num_threads, csv_files):
         step_size = int(math.ceil(len(csv_files) / num_threads))
         chunks_list = [csv_files[j:min(j + step_size, len(
                        csv_files))] for j in range(
-                        0, len(csv_files), step_size)]
+                       0, len(csv_files), step_size)]
 
         # set up parallel processing
         manager = mp.Manager()
@@ -300,7 +343,8 @@ class AlgorithmRunner(object):
         pool = mp.Pool(processes=num_threads + 1)
         signal.signal(signal.SIGINT, sigint_handler)
         try:
-            pool.apply_async(collector, (writing_queue, params, self.dev_mode))
+            collector_job = pool.apply_async(
+                collector, (writing_queue, params, self.dev_mode))
 
             # Compute the density
             for chunk in chunks_list:
@@ -314,7 +358,9 @@ class AlgorithmRunner(object):
             for job in jobs:
                 job.get()
             writing_queue.put('kill')  # stop collection
+            result = collector_job.get()
             pool.join()
+            return result
         except GracefulExit:
             pool.terminate()
             print("Exiting")
@@ -322,6 +368,8 @@ class AlgorithmRunner(object):
             raise RuntimeError("Received interrupt signal, exiting. Bye.")
 
     def _singleprocess(self, params, csv_files):
+        result_processor = ResultProcessor(params, self.dev_mode)
         for result in process(params, csv_files, self.algorithm,
                               self.dev_mode, self.sandboxing):
-            process_result(result, params, self.dev_mode)
+            result_processor(result)
+        return result_processor.get_result()

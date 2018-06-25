@@ -7,4 +7,5 @@ This is the core library of opalalgorithms which specifies the standard class wh
 	:maxdepth: 2
 
 	core/base
+	core/privacy
 

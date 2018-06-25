@@ -4,8 +4,9 @@ scikit-learn
 setuptools
 configargparse
 six
-git+https://github.com/emalgorithm/bandicoot.git@master
-git+https://github.com/OPAL-Project/codejail.git
+python-dateutil
+-e git+https://github.com/OPAL-Project/bandicoot.git@master
+-e git+https://github.com/OPAL-Project/codejail.git
 flake8
 pydocstyle
 pytest

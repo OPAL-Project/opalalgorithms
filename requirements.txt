@@ -4,5 +4,5 @@ scikit-learn
 setuptools
 six
 python-dateutil
--e git+https://github.com/emalgorithm/bandicoot.git@master
+-e git+https://github.com/OPAL-Project/bandicoot.git@master
 -e git+https://github.com/OPAL-Project/codejail.git

@@ -5,4 +5,4 @@ setuptools
 six
 python-dateutil
 -e git+https://github.com/OPAL-Project/bandicoot.git@master#egg=bandicoot
--e git+https://github.com/OPAL-Project/codejail.git#egg=codejail
+-e git+https://github.com/OPAL-Project/codejail.git@master#egg=codejail

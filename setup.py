@@ -19,6 +19,8 @@ setup(
         'six',
         'configargparse',
         'requests',
+        'codejail',
+        'bandicoot'
     ],
     dependency_links=[
         'git+https://github.com/OPAL-Project/bandicoot.git@master#egg='

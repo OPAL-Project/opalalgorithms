@@ -29,7 +29,7 @@ class PrivacyAlgorithmRunner(object):
         Return:
             dict: Privacy ensured dictionary
         """
-        result = self.algorithm(self.params, result, self.seed)
+        result = self.algorithm(result, self.params, self.salt)
         if self._validate_result(result):
             return result
         return {}

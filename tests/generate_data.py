@@ -4,7 +4,6 @@ python generate_data.py -c config
 """
 from __future__ import division, print_function
 import configargparse
-import opalalgorithms
 from opalalgorithms.utils import OPALDataGenerator
 import time
 import multiprocessing as mp

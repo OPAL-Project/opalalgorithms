@@ -2,7 +2,6 @@
 from __future__ import division, print_function
 import multiprocessing as mp
 import os
-import math
 import six
 import codejail
 from codejail.safe_exec import not_safe_exec
@@ -11,6 +10,7 @@ import textwrap
 import signal
 import sys
 import requests
+import json
 
 
 __all__ = ["AlgorithmRunner"]
@@ -38,7 +38,7 @@ def check_environ():
                 'Environment variable {} not set'.format(environ_var))
 
 
-def get_jail():
+def get_jail(python_version=sys.version_info[0]):
     """Return codejail object.
 
     Note:
@@ -60,7 +60,7 @@ def get_jail():
         'python3',
         os.path.join(sandbox_env, 'bin', 'python'),
         user=sandbox_user)
-    if sys.version_info[0] < 3:
+    if python_version < 3:
         jail = codejail.get_codejail('python')
     else:
         jail = codejail.get_codejail('python3')
@@ -116,28 +116,8 @@ def process_user_csv(params, user_csv_file, algorithm, dev_mode, sandboxing,
     return result
 
 
-def process(params, users_csv_files, algorithm, dev_mode, sandboxing):
-    """Process files as per arguments.
-
-    Args:
-        params (dict): Parameters for the request.
-        users_csv_files (list): List of paths to user csv files.
-        algorithm (dict): Dictionary with keys `code` and `className`
-            specifying algorithm code and className.
-        dev_mode (bool): Should the algorithm run in development mode or
-            production mode.
-        sandboxing (bool): Should sandboxing be used or not.
-
-    """
-    jail = get_jail()
-    for user_csv_file in users_csv_files:
-        yield process_user_csv(
-            params, user_csv_file, algorithm, dev_mode,
-            sandboxing, jail)
-
-
-def mapper(writing_queue, params, users_csv_files, algorithm,
-           dev_mode=False, sandboxing=True):
+def mapper(writing_queue, params, file_queue, algorithm,
+           dev_mode=False, sandboxing=True, python_version=2):
     """Call the map function and insert result into the queue if valid.
 
     Args:
@@ -149,14 +129,41 @@ def mapper(writing_queue, params, users_csv_files, algorithm,
         dev_mode (bool): Should the algorithm run in development mode or
             production mode.
         sandboxing (bool): Should sandboxing be used or not.
+        python_version (int): Python version being used for sandboxing.
     """
-    for result in process(params, users_csv_files, algorithm, dev_mode,
-                          sandboxing):
-        if result:
-            if is_valid_result(result):
-                writing_queue.put(result)
-            elif dev_mode:
-                print("Error in result {}".format(result))
+    jail = get_jail(python_version)
+    while not file_queue.empty():
+        filepath = None
+        scaler = None
+        try:
+            result = file_queue.get(timeout=1)
+            filepath, scaler = result
+        except Exception as e:
+            print(e)
+            break
+        result = process_user_csv(
+            params, filepath, algorithm, dev_mode,
+            sandboxing, jail)
+        if result and is_valid_result(result):
+            writing_queue.put((result, scaler))
+        elif result and dev_mode:
+            print("Error in result {}".format(result))
+
+
+def scale_result(result, scaler):
+    """Return scaled result.
+
+    Args:
+        result (dict): Result.
+        scaler (number): Factor by which results need to be scaled.
+
+    Returns:
+        dict: Scaled result.
+    """
+    scaled_result = {}
+    for key, val in six.iteritems(result):
+        scaled_result[key] = scaler * val
+    return scaled_result
 
 
 def collector(writing_queue, params, dev_mode=False):
@@ -178,11 +185,12 @@ def collector(writing_queue, params, dev_mode=False):
     result_processor = ResultProcessor(params, dev_mode)
     while True:
         # wait for result to appear in the queue
-        result = writing_queue.get()
+        processed_result = writing_queue.get()
         # if got signal 'kill' exit the loop
-        if result == 'kill':
+        if processed_result == 'kill':
             break
-        result_processor(result)
+        result, scaler = processed_result
+        result_processor(scale_result(result, scaler))
     return result_processor.get_result()
 
 
@@ -299,7 +307,7 @@ class AlgorithmRunner(object):
         self.multiprocess = multiprocess
         self.sandboxing = sandboxing
 
-    def __call__(self, params, data_dir, num_threads):
+    def __call__(self, params, data_dir, num_threads, weights_file=None):
         """Run algorithm.
 
         Selects the csv files from the data directory. Divides the csv files
@@ -313,6 +321,7 @@ class AlgorithmRunner(object):
                 algorithm
             data_dir (str): Data directory with csv files.
             num_threads (int): Number of threads
+            weights_file (str): Path to the json file containing weights.
 
         Returns:
             int: Amount of time required for computation in microseconds.
@@ -322,20 +331,35 @@ class AlgorithmRunner(object):
         csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
             if f.endswith('.csv')]
+        csv2weights = self._get_weights(csv_files, weights_file)
         if self.multiprocess:
-            return self._multiprocess(params, num_threads, csv_files)
+            return self._multiprocess(
+                params, num_threads, csv_files, csv2weights)
         else:
-            return self._singleprocess(params, csv_files)
+            return self._singleprocess(params, csv_files, csv2weights)
 
-    def _multiprocess(self, params, num_threads, csv_files):
-        step_size = int(math.ceil(len(csv_files) / num_threads))
-        chunks_list = [csv_files[j:min(j + step_size, len(
-                       csv_files))] for j in range(
-                       0, len(csv_files), step_size)]
+    def _get_weights(self, csv_files, weights_file):
+        """Return weights for each user if available, else return 1."""
+        weights = None
+        if weights_file:
+            with open(weights_file) as fp:
+                weights = json.load(fp)
+        csv2weights = {}
+        for f in csv_files:
+            csv_weight = 1  # default weight
+            user = os.path.splitext(os.path.basename(f))[0]
+            if weights and user in weights:
+                csv_weight = weights[user]
+            csv2weights[f] = csv_weight
+        return csv2weights
 
+    def _multiprocess(self, params, num_threads, csv_files, csv2weights):
         # set up parallel processing
         manager = mp.Manager()
         writing_queue = manager.Queue()
+        file_queue = manager.Queue()
+        for fpath in csv_files:
+            file_queue.put((fpath, csv2weights[fpath]))
         jobs = []
 
         # additional 1 process for writer
@@ -347,9 +371,9 @@ class AlgorithmRunner(object):
                 collector, (writing_queue, params, self.dev_mode))
 
             # Compute the density
-            for chunk in chunks_list:
+            for i in range(num_threads):
                 jobs.append(pool.apply_async(mapper, (
-                    writing_queue, params, chunk, self.algorithm,
+                    writing_queue, params, file_queue, self.algorithm,
                     self.dev_mode, self.sandboxing)))
 
             # Clean up parallel processing (close pool, wait for processes to

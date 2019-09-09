@@ -98,12 +98,12 @@ class OPALDataGenerator(object):
                 antenna_id])
         return line
 
-    def __str_time_prop(self, start, end, format, prop):
+    def __str_time_prop(self, start, end, date_format, prop):
         """Generate time as proportion between start time and end time."""
-        stime = time.mktime(time.strptime(start, format))
-        etime = time.mktime(time.strptime(end, format))
+        stime = time.mktime(time.strptime(start, date_format))
+        etime = time.mktime(time.strptime(end, date_format))
         ptime = stime + prop * (etime - stime)
-        return time.strftime(format, time.localtime(ptime))
+        return time.strftime(date_format, time.localtime(ptime))
 
     def __random_date(self, start, end, prop):
         return self.__str_time_prop(start, end, '%Y-%m-%d %H:%M:%S', prop)

@@ -1,15 +1,17 @@
 """Test population density algorithm."""
 from __future__ import division, print_function
-from opalalgorithms.utils import AlgorithmRunner
-import codejail
-import pytest
 import subprocess
 import time
 import signal
 
+import codejail
+import pytest
 
-num_threads = 3
-data_path = 'data'
+from opalalgorithms.utils import AlgorithmRunner
+
+
+NUM_THREADS = 3
+DATA_PATH = 'data'
 
 
 def get_algo(filename, class_name='SampleAlgo1'):
@@ -21,16 +23,21 @@ def get_algo(filename, class_name='SampleAlgo1'):
     return algorithm
 
 
-def run_algo(algorithm_filename, params, dev_mode=True):
+def run_algo(algorithm_filename, params, dev_mode=True,
+             multiprocess=True, sandboxing=True):
     """Run an algorithm."""
     algorithm = get_algo(algorithm_filename)
     algorunner = AlgorithmRunner(
-        algorithm, dev_mode=dev_mode, multiprocess=True, sandboxing=True)
-    return algorunner(params, data_path, num_threads)
+        algorithm, dev_mode=dev_mode, multiprocess=multiprocess,
+        sandboxing=sandboxing)
+    return algorunner(params, DATA_PATH, NUM_THREADS)
 
 
-def test_algo_success():
-    """Test that algorithm runner runs successfully."""
+def test_algo_multiprocess_sandboxing_success():
+    """Test that algorithm runner runs successfully.
+
+    Multiprocessing and sandboxing are on.
+    """
     params = dict(
         sample=0.2,
         resolution='location_level_1')
@@ -38,13 +45,25 @@ def test_algo_success():
     assert type(result) is list
 
 
-@pytest.mark.xfail(raises=codejail.exceptions.SafeExecException)
+def test_algo_singleprocess_sandboxing_success():
+    """Test that algorithm runner runs successfully.
+    
+    Multiprocessing is off, sandboxing is on.
+    """
+    params = dict(
+        sample=0.2,
+        resolution='location_level_1')
+    result = run_algo('sample_algos/algo1.py', params, multiprocess=False)
+    assert type(result) is list
+
+
+@pytest.mark.xfail(strict=True, raises=codejail.exceptions.SafeExecException)
 def test_algo_failure():
     """Check if codejail is working correctly."""
     params = dict(
         sample=0.2,
         resolution='location_level_1')
-    assert run_algo('sample_algos/algo1.py', params)
+    assert run_algo('sample_algos/algo1_restricted.py', params)
 
 
 def test_interrupt_works():

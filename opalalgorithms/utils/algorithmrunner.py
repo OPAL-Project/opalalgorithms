@@ -1,26 +1,29 @@
 """Given an algorithm object, run the algorithm."""
 from __future__ import division, print_function
+
+import signal
+import sys
 import multiprocessing as mp
 import os
+import textwrap
+import json
+
+import requests
 import six
 import codejail
 from codejail.safe_exec import not_safe_exec
 from codejail.limits import set_limit
-import textwrap
-import signal
-import sys
-import requests
-import json
 
 
 __all__ = ["AlgorithmRunner"]
 
 
 class GracefulExit(Exception):
-    pass
+    """Graceful exit exception class."""
 
 
 def sigint_handler(signum, thread):
+    """Handle interrupt signal."""
     raise GracefulExit()
 
 
@@ -30,6 +33,7 @@ def check_environ():
     Note:
         - Required environment variables are `OPALALGO_SANDBOX_VENV` and
             `OPALALGO_SANDBOX_USER`.
+
     """
     req_environ_vars = ['OPALALGO_SANDBOX_VENV', 'OPALALGO_SANDBOX_USER']
     for environ_var in req_environ_vars:
@@ -48,10 +52,12 @@ def get_jail(python_version=sys.version_info[0]):
             virtual environment.
         - `OPALALGO_SANDBOX_USER` must be set to the user running the
             sandboxed algorithms.
+
     """
     sandbox_env = os.environ.get('OPALALGO_SANDBOX_VENV')
     sandbox_user = os.environ.get('OPALALGO_SANDBOX_USER')
     set_limit("REALTIME", None)
+    set_limit("CPU", 15)
     codejail.configure(
         'python',
         os.path.join(sandbox_env, 'bin', 'python'),
@@ -130,6 +136,7 @@ def mapper(writing_queue, params, file_queue, algorithm,
             production mode.
         sandboxing (bool): Should sandboxing be used or not.
         python_version (int): Python version being used for sandboxing.
+
     """
     jail = get_jail(python_version)
     while not file_queue.empty():
@@ -138,8 +145,8 @@ def mapper(writing_queue, params, file_queue, algorithm,
         try:
             result = file_queue.get(timeout=1)
             filepath, scaler = result
-        except Exception as e:
-            print(e)
+        except Exception as exc:
+            print(exc)
             break
         result = process_user_csv(
             params, filepath, algorithm, dev_mode,
@@ -159,6 +166,7 @@ def scale_result(result, scaler):
 
     Returns:
         dict: Scaled result.
+
     """
     scaled_result = {}
     for key, val in six.iteritems(result):
@@ -190,7 +198,7 @@ def collector(writing_queue, params, dev_mode=False):
         if processed_result == 'kill':
             break
         result, scaler = processed_result
-        result_processor(scale_result(result, scaler))
+        result_processor(result, scaler=scaler)
     return result_processor.get_result()
 
 
@@ -245,7 +253,7 @@ class ResultProcessor(object):
         self.dev_mode = dev_mode
         self.result_list = []
 
-    def __call__(self, result):
+    def __call__(self, result, scaler=1):
         """Process the result.
 
         If dev_mode is set to true, it appends the result to a list.
@@ -253,8 +261,10 @@ class ResultProcessor(object):
 
         Args:
             result (dict): Result of the processed algorithm.
+            scaler (int): Scale results by what value.
 
         """
+        result = scale_result(result, scaler)
         if self.dev_mode:
             self.result_list.append(result)
         else:
@@ -330,27 +340,26 @@ class AlgorithmRunner(object):
         check_environ()
         csv_files = [os.path.join(
             os.path.abspath(data_dir), f) for f in os.listdir(data_dir)
-            if f.endswith('.csv')]
+                     if f.endswith('.csv')]
         csv2weights = self._get_weights(csv_files, weights_file)
         if self.multiprocess:
             return self._multiprocess(
                 params, num_threads, csv_files, csv2weights)
-        else:
-            return self._singleprocess(params, csv_files, csv2weights)
+        return self._singleprocess(params, csv_files, csv2weights)
 
     def _get_weights(self, csv_files, weights_file):
         """Return weights for each user if available, else return 1."""
         weights = None
         if weights_file:
-            with open(weights_file) as fp:
-                weights = json.load(fp)
+            with open(weights_file) as file_path:
+                weights = json.load(file_path)
         csv2weights = {}
-        for f in csv_files:
+        for file_path in csv_files:
             csv_weight = 1  # default weight
-            user = os.path.splitext(os.path.basename(f))[0]
+            user = os.path.splitext(os.path.basename(file_path))[0]
             if weights and user in weights:
                 csv_weight = weights[user]
-            csv2weights[f] = csv_weight
+            csv2weights[file_path] = csv_weight
         return csv2weights
 
     def _multiprocess(self, params, num_threads, csv_files, csv2weights):
@@ -371,7 +380,7 @@ class AlgorithmRunner(object):
                 collector, (writing_queue, params, self.dev_mode))
 
             # Compute the density
-            for i in range(num_threads):
+            for _ in range(num_threads):
                 jobs.append(pool.apply_async(mapper, (
                     writing_queue, params, file_queue, self.algorithm,
                     self.dev_mode, self.sandboxing)))
@@ -391,9 +400,12 @@ class AlgorithmRunner(object):
             pool.join()
             raise RuntimeError("Received interrupt signal, exiting. Bye.")
 
-    def _singleprocess(self, params, csv_files):
+    def _singleprocess(self, params, csv_files, csv2weights):
         result_processor = ResultProcessor(params, self.dev_mode)
-        for result in process(params, csv_files, self.algorithm,
-                              self.dev_mode, self.sandboxing):
-            result_processor(result)
+        jail = get_jail(python_version=2)
+        for fpath in csv_files:
+            scaler = csv2weights[fpath]
+            result = process_user_csv(
+                params, fpath, self.algorithm, self.dev_mode, self.sandboxing, jail)
+            result_processor(result, scaler=scaler)
         return result_processor.get_result()

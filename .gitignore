@@ -104,5 +104,6 @@ ENV/
 # random data
 data/
 .idea/
+.vscode/
 
 sftp-config.json
